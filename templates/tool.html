@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — Daily App{% endblock %}
+
+{% block content %}
+<a href="/" class="text-sm text-blue-600 hover:underline">&larr; Kembali ke dashboard</a>
+
+<div class="mt-4 bg-white rounded-lg border border-slate-200 p-6">
+    <div class="flex items-center gap-3 mb-2">
+        <span class="text-3xl">{{ tool.icon }}</span>
+        <h1 class="text-2xl font-bold">{{ tool.name }}</h1>
+    </div>
+    <p class="text-slate-500 mb-6">{{ tool.description }}</p>
+
+    {% if not tool.ready %}
+    <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 text-sm">
+        <strong>Perlu setup:</strong> {{ tool.dependency_message }}
+    </div>
+    {% endif %}
+
+    <form id="tool-form" data-tool-id="{{ tool.id }}"
+          data-supports-batch="{{ 'true' if tool.supports_batch else 'false' }}"
+          data-requires-file="{{ 'true' if tool.requires_file else 'false' }}">
+
+        {% if tool.requires_file %}
+        <div class="mb-5">
+            <label class="block text-sm font-medium mb-1">
+                Pilih file{% if tool.supports_batch %} (bisa banyak){% endif %}
+            </label>
+            <input type="file" name="files"
+                   {% if tool.supports_batch %}multiple{% endif %}
+                   {% if tool.accepted_extensions %}accept="{{ tool.accepted_extensions | join(',') }}"{% endif %}
+                   class="block w-full text-sm text-slate-600 border border-slate-300 rounded-md
+                          file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0
+                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+            {% if tool.accepted_extensions %}
+            <p class="text-xs text-slate-400 mt-1">Format diterima: {{ tool.accepted_extensions | join(', ') }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% for opt in tool.options %}
+        <div class="mb-5">
+            <label class="block text-sm font-medium mb-1" for="opt-{{ opt.name }}">{{ opt.label }}</label>
+
+            {% if opt.type == 'select' %}
+            <select id="opt-{{ opt.name }}" name="{{ opt.name }}"
+                    class="block w-full text-sm border border-slate-300 rounded-md p-2 bg-white">
+                {% for choice in opt.choices %}
+                <option value="{{ choice.value }}" {% if choice.value == opt.default %}selected{% endif %}>
+                    {{ choice.label }}
+                </option>
+                {% endfor %}
+            </select>
+
+            {% elif opt.type == 'textarea' %}
+            <textarea id="opt-{{ opt.name }}" name="{{ opt.name }}" rows="3"
+                      placeholder="{{ opt.placeholder | default('') }}"
+                      class="block w-full text-sm border border-slate-300 rounded-md p-2">{{ opt.default | default('') }}</textarea>
+
+            {% elif opt.type == 'range' %}
+            <div class="flex items-center gap-3">
+                <input id="opt-{{ opt.name }}" name="{{ opt.name }}" type="range"
+                       min="{{ opt.min | default(0) }}" max="{{ opt.max | default(100) }}"
+                       value="{{ opt.default | default(0) }}" class="flex-1"
+                       oninput="document.getElementById('val-{{ opt.name }}').textContent = this.value">
+                <span id="val-{{ opt.name }}" class="text-sm w-10 text-right">{{ opt.default | default(0) }}</span>
+            </div>
+
+            {% elif opt.type == 'checkbox' %}
+            <input id="opt-{{ opt.name }}" name="{{ opt.name }}" type="checkbox"
+                   {% if opt.default %}checked{% endif %} class="h-4 w-4">
+
+            {% else %}{# number / text #}
+            <input id="opt-{{ opt.name }}" name="{{ opt.name }}"
+                   type="{{ 'number' if opt.type == 'number' else 'text' }}"
+                   {% if opt.min is defined %}min="{{ opt.min }}"{% endif %}
+                   {% if opt.max is defined %}max="{{ opt.max }}"{% endif %}
+                   value="{{ opt.default | default('') }}"
+                   placeholder="{{ opt.placeholder | default('') }}"
+                   class="block w-full text-sm border border-slate-300 rounded-md p-2">
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" id="submit-btn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-md
+                       disabled:opacity-50 disabled:cursor-not-allowed">
+            Proses
+        </button>
+    </form>
+
+    <!-- Area status & hasil -->
+    <div id="status" class="mt-6 hidden"></div>
+    <div id="result" class="mt-4 hidden"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

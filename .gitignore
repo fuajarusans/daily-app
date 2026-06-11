@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# File sementara aplikasi
+storage/uploads/
+storage/outputs/
+
+# Data pribadi (catatan & pengingat) — JANGAN diunggah ke repo publik
+data/
+
+# Konfigurasi lokal Claude Code (tooling, bukan bagian aplikasi)
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

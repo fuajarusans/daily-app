@@ -1,0 +1,18 @@
+# === Web framework ===
+fastapi
+uvicorn[standard]
+python-multipart        # untuk menerima upload file (form-data)
+jinja2                  # template HTML
+
+# === Tools ===
+pdf2docx                # PDF -> Word
+pikepdf                 # Kompresi / manipulasi PDF
+Pillow                  # Resize, convert, kompresi gambar
+pillow-heif             # Dukungan format HEIC untuk Pillow
+rembg[cpu]              # Hapus background gambar (extra [cpu] menyertakan backend onnxruntime; model AI diunduh saat pertama kali)
+qrcode[pil]             # Generate QR code
+
+# Catatan dependency EKSTERNAL (bukan pip, instal manual):
+#   - LibreOffice  -> wajib untuk tool "Office to PDF"
+#   - Ghostscript  -> opsional untuk hasil kompresi PDF lebih maksimal
+# Lihat README.md bagian "Dependency Eksternal".

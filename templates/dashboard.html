@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Daily App{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-1">Tools</h1>
+<p class="text-slate-500 mb-6">Pilih salah satu tool di bawah untuk mulai memproses file.</p>
+
+<a href="/notes"
+   class="flex items-center gap-4 bg-white rounded-lg p-5 border border-slate-200 hover:border-blue-400 hover:shadow-md transition mb-6">
+    <div class="text-3xl">📝</div>
+    <div class="flex-1 min-w-0">
+        <h2 class="font-semibold text-slate-900">Catatan &amp; Pengingat</h2>
+        <p class="text-sm text-slate-500">Simpan catatan, tandai tugas, dan dapatkan pengingat jatuh tempo.</p>
+    </div>
+    <span class="js-reminder-badge hidden text-xs font-bold text-white bg-red-500 rounded-full px-2 py-1">0</span>
+</a>
+
+{% if tools|length == 0 %}
+<div class="bg-white rounded-lg p-8 text-center text-slate-500 border border-slate-200">
+    Belum ada tool terdaftar. Tambahkan file baru di folder <code>tools/</code>.
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for tool in tools %}
+    <a href="/tool/{{ tool.id }}"
+       class="block bg-white rounded-lg p-5 border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+        <div class="flex items-start justify-between">
+            <div class="text-3xl mb-3">{{ tool.icon }}</div>
+            {% if not tool.ready %}
+            <span class="text-[10px] uppercase font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                perlu setup
+            </span>
+            {% endif %}
+        </div>
+        <h2 class="font-semibold text-slate-900 group-hover:text-blue-600">{{ tool.name }}</h2>
+        <p class="text-sm text-slate-500 mt-1">{{ tool.description }}</p>
+        {% if tool.supports_batch %}
+        <span class="inline-block mt-3 text-[10px] uppercase font-semibold bg-slate-100 text-slate-500 px-2 py-1 rounded">
+            batch
+        </span>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}
