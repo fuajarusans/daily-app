@@ -34,6 +34,11 @@ class Tool:
     description: str = ""              # Deskripsi singkat untuk kartu dashboard
     icon: str = "🛠️"                   # Emoji ikon
 
+    # URL halaman kustom. Kosongkan untuk memakai form generik /tool/<id>.
+    # Isi bila tool butuh UI sendiri (mis. kanvas) — kartu dashboard akan
+    # menautkan ke URL ini. Lihat tools/watermark_remove.py sebagai contoh.
+    custom_url: str = ""
+
     # Ekstensi input yang diterima (huruf kecil, dengan titik). [] = bebas/tanpa file.
     accepted_extensions: list[str] = []
 
@@ -84,6 +89,7 @@ class Tool:
             "name": self.name,
             "description": self.description,
             "icon": self.icon,
+            "custom_url": self.custom_url,
             "accepted_extensions": self.accepted_extensions,
             "supports_batch": self.supports_batch,
             "requires_file": self.requires_file,

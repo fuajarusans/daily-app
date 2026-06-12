@@ -4,8 +4,9 @@ Aplikasi utilitas internal yang berjalan **lokal** di komputer Anda. Berupa dash
 web (diakses lewat browser di `http://localhost:8000`) berisi kumpulan *tools* harian
 untuk konversi dan manipulasi file.
 
-Tidak butuh internet untuk operasi sehari-hari (kecuali tool "Hapus Background" pada
-pemakaian pertama), tidak di-deploy ke server.
+Tidak butuh internet untuk operasi sehari-hari (kecuali tool "Hapus Background" dan engine
+**LaMa** pada "Hapus Watermark" — masing-masing mengunduh model sekali saat pemakaian
+pertama), tidak di-deploy ke server.
 
 > 📘 Mau langsung pakai? Lihat **[PANDUAN.md](PANDUAN.md)** untuk cara pemakaian
 > harian dan cara update.
@@ -22,6 +23,7 @@ pemakaian pertama), tidak di-deploy ke server.
 | 🖼️ Resize / Compress Gambar | Ubah ukuran & kualitas | Pillow | Mendukung batch |
 | 🔄 Convert Format Gambar | PNG/JPG/WEBP/HEIC/… | Pillow + pillow-heif | Mendukung batch |
 | ✂️ Hapus Background Gambar | Hapus latar otomatis (AI) | rembg | Unduh model ~170MB sekali (perlu internet) |
+| 🧽 Hapus Watermark | Tandai area di kanvas → hapus (inpainting); engine OpenCV / LaMa (AI) | opencv-python-headless · onnxruntime | Halaman kanvas khusus (`/watermark`); LaMa unduh model ~208MB sekali |
 | 🔳 Generate QR Code | Teks/URL → PNG | qrcode[pil] | — |
 
 ---
@@ -101,6 +103,9 @@ Tekan `CTRL+C` di terminal untuk menghentikan.
    `.zip`.
 6. **Office ke PDF**: bila LibreOffice belum terpasang, tool menampilkan badge
    *"perlu setup"* dan pesan cara instalasi (perilaku yang diharapkan).
+7. **Hapus Watermark**: klik kartunya (membuka halaman kanvas), pilih gambar, **sapukan
+   kuas** menutupi watermark, lalu **Proses** → muncul pratinjau *sebelum/sesudah* + unduh.
+   Coba juga **Engine → LaMa (AI)** untuk hasil lebih halus (unduh model ~208MB sekali).
 
 ---
 
@@ -144,7 +149,8 @@ Daily App/
 │   ├── cleanup.py          # Pembersihan file sementara otomatis
 │   ├── utils.py            # Helper (simpan upload, zip, deteksi dependency)
 │   ├── notes_store.py      # ★ Penyimpanan Catatan & Pengingat (data/notes.json)
-│   └── notes_routes.py     # ★ Route halaman + API Catatan & Pengingat
+│   ├── notes_routes.py     # ★ Route halaman + API Catatan & Pengingat
+│   └── watermark_routes.py # ★ Route halaman kustom Hapus Watermark (kanvas)
 │
 ├── tools/                  # ★ Satu file = satu tool (auto-terdaftar)
 │   ├── __init__.py         # Auto-import semua modul di folder ini
@@ -154,15 +160,19 @@ Daily App/
 │   ├── image_resize.py
 │   ├── image_convert.py
 │   ├── remove_background.py
-│   └── generate_qr.py
+│   ├── generate_qr.py
+│   ├── watermark_remove.py # Halaman kustom (custom_url) → /watermark
+│   └── _lama.py            # Engine LaMa (ONNX) — bukan Tool (diawali _ = tak auto-import)
 │
 ├── templates/              # HTML (Jinja2 + Tailwind via CDN)
 │   ├── base.html
 │   ├── dashboard.html      # Daftar tool — terisi OTOMATIS dari registry
-│   └── tool.html           # Halaman generik 1 tool (form dari metadata tool)
+│   ├── tool.html           # Halaman generik 1 tool (form dari metadata tool)
+│   └── watermark.html      # Halaman kustom Hapus Watermark (editor kanvas)
 │
 ├── static/
 │   ├── app.js              # JS vanilla: upload, status, download
+│   ├── watermark.js        # JS editor kanvas Hapus Watermark
 │   ├── notes.js            # JS Catatan & Pengingat (CRUD + render)
 │   ├── reminders.js        # JS lencana + notifikasi pengingat (semua halaman)
 │   └── img/                # Logo & ikon (emblem.png, logo.png, favicon, …)
@@ -171,8 +181,10 @@ Daily App/
 │   ├── uploads/
 │   └── outputs/
 │
-└── data/                   # Data PERMANEN (TIDAK dibersihkan)
-    └── notes.json          # Catatan & pengingat
+├── data/                   # Data PERMANEN (TIDAK dibersihkan)
+│   └── notes.json          # Catatan & pengingat
+│
+└── models/                 # Model AI diunduh sekali (lama_fp32.onnx ~208MB) — gitignored
 ```
 
 ---
@@ -262,6 +274,18 @@ Field umum lain: `default`, `min`, `max`, `placeholder`.
 - Error lain yang tidak terduga tetap ditangkap framework dan ditampilkan dengan aman.
 - File di-`tools/` yang namanya diawali `_` (mis. `_helpers.py`) **tidak** di-auto-import,
   jadi cocok untuk modul bantu bersama.
+
+### Tool dengan halaman kustom (UI sendiri)
+
+Sebagian tool butuh antarmuka di luar form standar (mis. **kanvas** untuk menandai area).
+Caranya: isi atribut **`custom_url`** pada kelas tool ke URL halaman Anda, lalu sediakan
+route + template untuk URL itu. Kartu di dashboard otomatis menaut ke `custom_url` tersebut
+(bukan ke `/tool/<id>`), sementara pemrosesan tetap bisa memakai endpoint standar
+`/api/tool/<id>/process` — cukup kirim file + opsi dari halaman kustom Anda.
+
+Contoh nyata: **Hapus Watermark** — `tools/watermark_remove.py` (`custom_url = "/watermark"`)
++ `app/watermark_routes.py` + `templates/watermark.html` + `static/watermark.js`. Halaman
+kanvas mengirim **gambar + mask** ke `/api/tool/watermark-remove/process`.
 
 ---
 

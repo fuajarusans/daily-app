@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — Daily App{% endblock %}
+
+{% block content %}
+<a href="/" class="text-sm text-blue-600 hover:underline">&larr; Kembali ke dashboard</a>
+
+<div class="mt-4 bg-white rounded-lg border border-slate-200 p-6">
+    <div class="flex items-center gap-3 mb-2">
+        <span class="text-3xl">{{ tool.icon }}</span>
+        <h1 class="text-2xl font-bold">{{ tool.name }}</h1>
+    </div>
+    <p class="text-slate-500 mb-4">{{ tool.description }}</p>
+
+    {% if not tool.ready %}
+    <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 text-sm">
+        <strong>Perlu setup:</strong> {{ tool.dependency_message }}
+    </div>
+    {% endif %}
+
+    <div class="mb-6 bg-slate-50 border border-slate-200 text-slate-600 rounded-md p-3 text-xs">
+        ⚖️ Gunakan hanya pada gambar milik Anda sendiri atau yang Anda berhak menyuntingnya.
+    </div>
+
+    <!-- Langkah 1: pilih gambar -->
+    <div class="mb-5">
+        <label class="block text-sm font-medium mb-1">1. Pilih gambar</label>
+        <input type="file" id="wm-file" accept="{{ tool.accepted_extensions | join(',') }}"
+               class="block w-full text-sm text-slate-600 border border-slate-300 rounded-md
+                      file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0
+                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+        <p class="text-xs text-slate-400 mt-1">Format: {{ tool.accepted_extensions | join(', ') }}</p>
+    </div>
+
+    <!-- Langkah 2+: editor (muncul setelah gambar dimuat) -->
+    <div id="wm-editor" class="hidden">
+        <label class="block text-sm font-medium mb-2">2. Tandai area watermark</label>
+
+        <!-- Toolbar -->
+        <div class="flex flex-wrap items-center gap-2 mb-3 text-sm">
+            <div class="inline-flex rounded-md border border-slate-300 overflow-hidden">
+                <button type="button" data-mode="brush" id="wm-mode-brush"
+                        class="wm-mode px-3 py-1.5 bg-blue-600 text-white">🖌️ Kuas</button>
+                <button type="button" data-mode="rect" id="wm-mode-rect"
+                        class="wm-mode px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300">▭ Kotak</button>
+                <button type="button" data-mode="eraser" id="wm-mode-eraser"
+                        class="wm-mode px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300">🧹 Hapus sapuan</button>
+            </div>
+
+            <div class="flex items-center gap-2 ml-1">
+                <span class="text-slate-500">Ukuran</span>
+                <input type="range" id="wm-brush-size" min="4" max="120" value="24" class="w-28">
+                <span id="wm-brush-size-val" class="w-8 text-right text-slate-600">24</span>
+            </div>
+
+            <button type="button" id="wm-undo"
+                    class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">↩️ Undo</button>
+            <button type="button" id="wm-clear"
+                    class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">🗑️ Bersihkan</button>
+        </div>
+
+        <!-- Kanvas: gambar + overlay mask -->
+        <div id="wm-canvas-wrap"
+             class="relative inline-block max-w-full border border-slate-300 rounded-md overflow-hidden bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:24px_24px]">
+            <canvas id="wm-img-canvas" class="block max-w-full h-auto select-none"></canvas>
+            <canvas id="wm-mask-canvas"
+                    class="absolute inset-0 w-full h-full cursor-crosshair touch-none"></canvas>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Sapukan kuas (atau tarik kotak) menutupi watermark. Warna merah = area yang akan dihapus.</p>
+
+        <!-- Langkah 3: opsi + proses -->
+        <div class="mt-5 space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1" for="wm-engine">Engine</label>
+                <select id="wm-engine" class="block w-full text-sm border border-slate-300 rounded-md p-2 bg-white">
+                    <option value="opencv" selected>OpenCV — cepat &amp; ringan</option>
+                    <option value="lama">LaMa (AI) — lebih halus, unduh model sekali (~208 MB)</option>
+                </select>
+                <p id="wm-lama-note" class="hidden mt-1 text-xs text-amber-600">
+                    ⓘ Pemakaian pertama mengunduh model AI (~208 MB) — butuh internet sekali saja, setelah itu offline.
+                </p>
+            </div>
+
+            <div id="wm-opencv-opts" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="wm-method">Metode inpaint</label>
+                    <select id="wm-method" class="block w-full text-sm border border-slate-300 rounded-md p-2 bg-white">
+                        <option value="telea" selected>Telea (cepat, serbaguna)</option>
+                        <option value="ns">Navier-Stokes (lebih halus)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="wm-radius">Radius inpaint (px)</label>
+                    <input type="number" id="wm-radius" min="1" max="30" value="3"
+                           class="block w-full text-sm border border-slate-300 rounded-md p-2">
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="wm-process"
+                class="mt-5 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-md
+                       disabled:opacity-50 disabled:cursor-not-allowed">
+            3. Proses
+        </button>
+    </div>
+
+    <!-- Status & hasil -->
+    <div id="wm-status" class="mt-6 hidden"></div>
+    <div id="wm-result" class="mt-4 hidden"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/watermark.js"></script>
+{% endblock %}

@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 # adalah subclass-nya, jadi cek isinstance harus pakai kelas Starlette agar cocok.
 from starlette.datastructures import UploadFile
 
-from app import cleanup, config, notes_routes, utils
+from app import cleanup, config, notes_routes, utils, watermark_routes
 from app.registry import ToolError, all_tools, get_tool
 
 # Mengimpor paket `tools` akan otomatis memuat & mendaftarkan semua tool.
@@ -38,6 +38,10 @@ templates = Jinja2Templates(directory=str(config.TEMPLATE_DIR))
 
 # Fitur Catatan & Pengingat (halaman + API CRUD)
 app.include_router(notes_routes.router)
+
+# Halaman kustom "Hapus Watermark" (editor kanvas). Proses tetap lewat endpoint
+# tool standar /api/tool/watermark-remove/process.
+app.include_router(watermark_routes.router)
 
 
 # ----------------------------------------------------------------------------

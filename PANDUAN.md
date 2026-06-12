@@ -70,6 +70,7 @@ Semua tool memakai pola yang sama:
 | 📄 **PDF ke Word** | PDF (batch) | — | DOCX (zip bila banyak) |
 | 📑 **Office ke PDF** | DOCX/XLSX/PPTX (batch) | — | PDF (zip bila banyak) |
 | ✂️ **Hapus Background** | Gambar (batch) | — | PNG transparan (zip bila banyak) |
+| 🧽 **Hapus Watermark** | Gambar (1 file) | Engine (OpenCV/LaMa), kuas/kotak di kanvas | Gambar bersih (PNG) |
 
 ### Catatan penting per tool
 - **Compress PDF** — metode **Cepat** selalu bisa dipakai. Metode **Maksimal**
@@ -81,6 +82,13 @@ Semua tool memakai pola yang sama:
 - **Office ke PDF** — memakai LibreOffice. Pastikan file Office yang akan dikonversi
   **tidak sedang dibuka** di aplikasi lain.
 - **Convert Gambar** — mendukung HEIC (foto iPhone) berkat pillow-heif.
+- **Hapus Watermark** — memakai **halaman kanvas** (bukan form biasa): unggah gambar,
+  **sapukan kuas** atau **tarik kotak** menutupi watermark (tanda merah = area yang akan
+  dihapus), lalu **Proses** → tampil pratinjau *sebelum/sesudah* + tombol unduh. Tersedia
+  **↩️ Undo**, **🗑️ Bersihkan**, dan pengatur **ukuran kuas**. Pilih **Engine**: **OpenCV**
+  (cepat & ringan, pas untuk teks/logo kecil) atau **LaMa (AI)** (lebih halus untuk objek/area
+  besar — **pemakaian pertama mengunduh model ~208 MB**, butuh internet sekali lalu offline).
+  Gunakan hanya pada gambar yang Anda berhak menyuntingnya.
 
 ---
 
@@ -161,6 +169,8 @@ winget upgrade --id Python.Python.3.12
 | Office→PDF "perlu setup" | Pastikan LibreOffice terpasang, lalu refresh halaman |
 | Compress PDF "Maksimal" gagal | Pilih metode "Cepat", atau pasang Ghostscript |
 | Hapus Background lama/gagal di awal | Butuh internet sekali untuk unduh model ~170 MB |
+| Hapus Watermark hasil buram/"smudge" | Tutup penuh watermark & kuas lebih rapat; coba engine **LaMa** untuk area besar; (OpenCV) kecilkan radius atau pakai Navier-Stokes |
+| Hapus Watermark (LaMa) lama di awal | Normal — pemakaian pertama mengunduh model ~208 MB (butuh internet sekali); setelah itu cepat & offline |
 | Hasil unduhan hilang | Normal — file dibersihkan otomatis setelah 1 jam |
 | Catatan hilang? | Tidak — catatan permanen di `data/notes.json` (beda dengan file hasil tool) |
 | Pengingat/notifikasi tak muncul | Klik **🔔 Aktifkan pengingat** & izinkan di browser; notifikasi hanya tampil saat aplikasi terbuka |

@@ -16,6 +16,10 @@ OUTPUT_DIR = STORAGE_DIR / "outputs"
 DATA_DIR = BASE_DIR / "data"
 NOTES_FILE = DATA_DIR / "notes.json"
 
+# Folder model AI yang diunduh sekali (mis. LaMa untuk Hapus Watermark).
+# Tidak ikut auto-cleanup; di-gitignore karena besar.
+MODELS_DIR = BASE_DIR / "models"
+
 # Folder template & static
 TEMPLATE_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
@@ -52,5 +56,5 @@ DEFAULT_NOTE_CATEGORY = "umum"
 
 def ensure_dirs() -> None:
     """Pastikan semua folder penyimpanan ada."""
-    for d in (STORAGE_DIR, UPLOAD_DIR, OUTPUT_DIR, DATA_DIR):
+    for d in (STORAGE_DIR, UPLOAD_DIR, OUTPUT_DIR, DATA_DIR, MODELS_DIR):
         d.mkdir(parents=True, exist_ok=True)

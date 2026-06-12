@@ -12,6 +12,9 @@ storage/outputs/
 # Data pribadi (catatan & pengingat) — JANGAN diunggah ke repo publik
 data/
 
+# Model AI yang diunduh otomatis (mis. LaMa ~208MB) — besar, jangan diunggah
+models/
+
 # Konfigurasi lokal Claude Code (tooling, bukan bagian aplikasi)
 .claude/
 

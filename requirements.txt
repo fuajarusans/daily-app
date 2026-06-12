@@ -9,6 +9,9 @@ pdf2docx                # PDF -> Word
 pikepdf                 # Kompresi / manipulasi PDF
 Pillow                  # Resize, convert, kompresi gambar
 pillow-heif             # Dukungan format HEIC untuk Pillow
+opencv-python-headless  # Hapus watermark (inpainting cv2.inpaint); -headless = tanpa GUI, lebih ringan
+# Engine LaMa (Hapus Watermark) memakai onnxruntime yang SUDAH ikut lewat rembg[cpu] di bawah —
+# tanpa torch. Model lama_fp32.onnx (~208MB) diunduh otomatis ke models/ saat pertama kali dipakai.
 rembg[cpu]              # Hapus background gambar (extra [cpu] menyertakan backend onnxruntime; model AI diunduh saat pertama kali)
 qrcode[pil]             # Generate QR code
 
