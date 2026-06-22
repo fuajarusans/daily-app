@@ -20,7 +20,7 @@ pertama), tidak di-deploy ke server.
 | 📄 PDF ke Word | `.pdf` → `.docx` | pdf2docx | — |
 | 🗜️ Compress PDF | Perkecil ukuran PDF | pikepdf / Ghostscript | Metode "Maksimal" perlu Ghostscript |
 | 📑 Office ke PDF | `.docx/.xlsx/.pptx` → `.pdf` | LibreOffice | **Wajib** LibreOffice terpasang |
-| 🖼️ Resize / Compress Gambar | Ubah ukuran & kualitas | Pillow | Mendukung batch |
+| 🖼️ Resize / Compress Gambar | Ubah ukuran, kualitas, atau target ukuran file (KB) | Pillow | Mendukung batch; mode target: PNG→JPG |
 | 🔄 Convert Format Gambar | PNG/JPG/WEBP/HEIC/… | Pillow + pillow-heif | Mendukung batch |
 | ✂️ Hapus Background Gambar | Hapus latar otomatis (AI) | rembg | Unduh model ~170MB sekali (perlu internet) |
 | 🧽 Hapus Watermark | Tandai area di kanvas → hapus (inpainting); engine OpenCV / LaMa (AI) | opencv-python-headless · onnxruntime | Halaman kanvas khusus (`/watermark`); LaMa unduh model ~208MB sekali |
@@ -98,6 +98,7 @@ Tekan `CTRL+C` di terminal untuk menghentikan.
 2. **Generate QR Code** (paling cepat, tanpa dependency eksternal): buka tool, isi teks
    `https://contoh.com`, klik **Proses**, lalu **Unduh hasil** → harus berupa PNG QR.
 3. **Resize Gambar**: buka tool, pilih satu gambar, set skala `50%`, **Proses** → unduh.
+   Atau isi **Target ukuran file (KB)** (mis. `200`) untuk dikompres otomatis ke ukuran itu.
 4. **PDF ke Word**: pilih satu `.pdf`, **Proses** → unduh `.docx`.
 5. **Batch**: pada tool gambar, pilih beberapa file sekaligus → hasil otomatis berupa
    `.zip`.

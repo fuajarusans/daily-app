@@ -64,7 +64,7 @@ Semua tool memakai pola yang sama:
 | Tool | Input | Opsi utama | Output |
 |------|-------|-----------|--------|
 | 🔳 **Generate QR Code** | Teks / URL (tanpa file) | Ukuran modul, tebal border | PNG |
-| 🖼️ **Resize / Compress Gambar** | Gambar (batch) | Skala % atau lebar/tinggi, kualitas | Gambar (zip bila banyak) |
+| 🖼️ **Resize / Compress Gambar** | Gambar (batch) | Skala/dimensi, kualitas, **target ukuran (KB)** | Gambar (zip bila banyak) |
 | 🔄 **Convert Format Gambar** | Gambar/HEIC (batch) | Format tujuan, kualitas | Gambar (zip bila banyak) |
 | 🗜️ **Compress PDF** | PDF (batch) | Metode Cepat / Maksimal, kualitas | PDF (zip bila banyak) |
 | 📄 **PDF ke Word** | PDF (batch) | — | DOCX (zip bila banyak) |
@@ -73,6 +73,11 @@ Semua tool memakai pola yang sama:
 | 🧽 **Hapus Watermark** | Gambar (1 file) | Engine (OpenCV/LaMa), kuas/kotak di kanvas | Gambar bersih (PNG) |
 
 ### Catatan penting per tool
+- **Resize / Compress Gambar** — isi **Target ukuran file (KB)** agar gambar dikompres
+  otomatis mendekati ukuran itu (slider **Kualitas diabaikan** saat target diisi). JPG/WEBP
+  dijaga formatnya; **PNG/BMP/TIFF dikonversi ke JPG** (dimensi tetap, transparansi diratakan
+  ke latar putih). Nama file hasil memuat ukuran tercapai, mis. `foto_142KB.jpg`. Biarkan
+  target = **0** untuk memakai slider Kualitas seperti biasa.
 - **Compress PDF** — metode **Cepat** selalu bisa dipakai. Metode **Maksimal**
   (lebih kecil, terutama untuk PDF berisi banyak gambar) memakai **Ghostscript yang
   sudah terpasang** di komputer ini, jadi langsung bisa digunakan. Pilih preset
