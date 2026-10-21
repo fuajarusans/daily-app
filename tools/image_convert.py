@@ -1,4 +1,4 @@
-"""Tool: Convert Format Gambar (PNG/JPG/WEBP/HEIC, dll) via Pillow + pillow-heif."""
+"""Tool: Convert Format Gambar (PNG/JPG/JFIF/WEBP/HEIC, dll) via Pillow + pillow-heif."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -20,6 +20,7 @@ except ImportError:
 _TARGETS = {
     "png": (".png", "PNG"),
     "jpg": (".jpg", "JPEG"),
+    "jfif": (".jfif", "JPEG"),  # JFIF = JPEG berekstensi .jfif
     "webp": (".webp", "WEBP"),
     "bmp": (".bmp", "BMP"),
     "tiff": (".tiff", "TIFF"),
@@ -30,9 +31,13 @@ _TARGETS = {
 class ImageConvertTool(Tool):
     id = "image-convert"
     name = "Convert Format Gambar"
-    description = "Ubah format gambar antar PNG / JPG / WEBP / HEIC / BMP / TIFF. Mendukung batch."
+    description = "Ubah format gambar antar PNG / JPG / JFIF / WEBP / HEIC / BMP / TIFF. Mendukung batch."
     icon = "🔄"
-    accepted_extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".heic", ".heif"]
+    glyph = "transform"
+    hue = "#8e5cd9"
+    accepted_extensions = [
+        ".png", ".jpg", ".jpeg", ".jfif", ".webp", ".bmp", ".tiff", ".heic", ".heif",
+    ]
     supports_batch = True
     options = [
         {
@@ -42,6 +47,7 @@ class ImageConvertTool(Tool):
             "choices": [
                 {"value": "png", "label": "PNG"},
                 {"value": "jpg", "label": "JPG"},
+                {"value": "jfif", "label": "JFIF"},
                 {"value": "webp", "label": "WEBP"},
                 {"value": "bmp", "label": "BMP"},
                 {"value": "tiff", "label": "TIFF"},
@@ -50,7 +56,7 @@ class ImageConvertTool(Tool):
         },
         {
             "name": "quality",
-            "label": "Kualitas (untuk JPG/WEBP)",
+            "label": "Kualitas (untuk JPG/JFIF/WEBP)",
             "type": "range",
             "min": 1,
             "max": 100,

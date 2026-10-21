@@ -65,7 +65,14 @@
             bitmap = await createImageBitmap(file, { imageOrientation: "none" });
         } catch (err) {
             // Fallback browser lama: pakai <img> (mungkin menerapkan orientasi EXIF).
-            bitmap = await loadViaImg(file);
+            try {
+                bitmap = await loadViaImg(file);
+            } catch (err2) {
+                imageFile = null;
+                showStatus(DailyIcon("alert-triangle") + " Gambar tidak bisa dibuka. Coba simpan ulang sebagai PNG atau JPG, lalu pilih lagi.",
+                    "bg-red-50 border border-red-200 text-red-800");
+                return;
+            }
         }
 
         imgCanvas.width = bitmap.width;
@@ -195,10 +202,11 @@
             mode = btn.dataset.mode;
             modeButtons.forEach(function (b) {
                 const active = b === btn;
-                b.classList.toggle("bg-blue-600", active);
-                b.classList.toggle("text-white", active);
+                b.classList.toggle("bg-ps", active);
+                b.classList.toggle("text-ps-on", active);
                 b.classList.toggle("bg-white", !active);
                 b.classList.toggle("text-slate-700", !active);
+                b.setAttribute("aria-pressed", String(active));
             });
         });
     });
@@ -256,7 +264,7 @@
         try {
             maskBlob = await buildMaskBlob();
         } catch (err) {
-            showStatus("❌ Gagal menyiapkan mask: " + err.message,
+            showStatus(DailyIcon("alert-triangle") + " Gagal menyiapkan mask: " + err.message,
                 "bg-red-50 border border-red-200 text-red-800");
             return;
         }
@@ -279,22 +287,22 @@
         const wait = lama
             ? "Memproses dengan LaMa… (pemakaian pertama mengunduh model ~208 MB, bisa beberapa menit)"
             : "Sedang memproses…";
-        showStatus('<div class="flex items-center gap-2"><span class="animate-spin">⏳</span> ' + wait + "</div>",
+        showStatus('<div class="flex items-center gap-2">' + DailyIcon("loader-2", "animate-spin") + " " + wait + "</div>",
             "bg-blue-50 border border-blue-200 text-blue-800");
 
         try {
             const resp = await fetch(`/api/tool/${TOOL_ID}/process`, { method: "POST", body: fd });
             const data = await resp.json();
             if (!resp.ok) {
-                showStatus("❌ " + (data.error || "Terjadi kesalahan."),
+                showStatus(DailyIcon("alert-triangle") + " " + (data.error || "Terjadi kesalahan."),
                     "bg-red-50 border border-red-200 text-red-800");
             } else {
-                showStatus("✅ Berhasil diproses.",
+                showStatus(DailyIcon("circle-check") + " Berhasil diproses.",
                     "bg-green-50 border border-green-200 text-green-800");
                 showResult(data);
             }
         } catch (err) {
-            showStatus("❌ Tidak dapat terhubung ke server: " + err.message,
+            showStatus(DailyIcon("alert-triangle") + " Tidak dapat terhubung ke server: " + err.message,
                 "bg-red-50 border border-red-200 text-red-800");
         } finally {
             processBtn.disabled = false;
@@ -316,8 +324,8 @@
                 </div>
              </div>
              <a href="${data.download_url}" download
-                class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2.5 rounded-md">
-                ⬇️ Unduh hasil (${data.filename})
+                class="inline-flex max-w-full items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-medium px-5 py-2.5 rounded-md">
+                ${DailyIcon("download")} <span class="min-w-0 break-all">Unduh hasil (${data.filename})</span>
              </a>`,
             "");
     }

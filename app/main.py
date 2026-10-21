@@ -9,13 +9,13 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 # request.form() menghasilkan starlette.datastructures.UploadFile; fastapi.UploadFile
 # adalah subclass-nya, jadi cek isinstance harus pakai kelas Starlette agar cocok.
 from starlette.datastructures import UploadFile
 
-from app import cleanup, config, notes_routes, utils, watermark_routes
+from app import cleanup, config, invoice_routes, notes_routes, utils, watermark_routes
 from app.registry import ToolError, all_tools, get_tool
+from app.templating import templates
 
 # Mengimpor paket `tools` akan otomatis memuat & mendaftarkan semua tool.
 import tools  # noqa: F401  (import untuk efek samping: registrasi tool)
@@ -34,7 +34,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Daily App", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.STATIC_DIR), name="static")
-templates = Jinja2Templates(directory=str(config.TEMPLATE_DIR))
 
 # Fitur Catatan & Pengingat (halaman + API CRUD)
 app.include_router(notes_routes.router)
@@ -43,15 +42,49 @@ app.include_router(notes_routes.router)
 # tool standar /api/tool/watermark-remove/process.
 app.include_router(watermark_routes.router)
 
+# Invoice Generator (halaman + API; data permanen di data/invoices.json)
+app.include_router(invoice_routes.router)
+
 
 # ----------------------------------------------------------------------------
 # Halaman HTML
 # ----------------------------------------------------------------------------
+def _format_chips(exts: list[str]) -> str:
+    """['.png', '.jpg', '.jpeg', ...] → 'PNG · JPG · +5' (format masukan, ringkas)."""
+    names: list[str] = []
+    for e in exts:
+        n = e.lstrip(".").upper().replace("JPEG", "JPG")
+        if n not in names:
+            names.append(n)
+    shown = " · ".join(names[:3])
+    return shown + (f" · +{len(names) - 3}" if len(names) > 3 else "")
+
+
+def _home_tiles() -> list[dict[str, Any]]:
+    """Isi rail Beranda: Catatan, Invoice, lalu semua tool terdaftar."""
+    tiles: list[dict[str, Any]] = [
+        {"id": "notes", "href": "/notes", "title": "Catatan & Pengingat", "glyph": "notes",
+         "desc": "Catatan, tugas, dan pengingat jatuh tempo, lengkap dengan kategori dan tag.",
+         "chips": ["Tersimpan permanen"], "ready": True, "badge": True, "hue": "#e09f3e"},
+        {"id": "invoice", "href": "/invoice", "title": "Invoice Generator", "glyph": "file-invoice",
+         "desc": "Invoice PDF untuk beberapa brand: nomor otomatis, klien tersimpan, 10 desain.",
+         "chips": ["PDF", "Multi-brand"], "ready": True, "hue": "#3fa66b"},
+    ]
+    for t in all_tools():
+        d = t.to_dict()
+        chips = [_format_chips(d["accepted_extensions"])] if d["accepted_extensions"] else ["Tanpa file"]
+        if d["supports_batch"]:
+            chips.append("Banyak file sekaligus")
+        tiles.append({"id": d["id"], "href": d["custom_url"] or f"/tool/{d['id']}", "title": d["name"],
+                      "glyph": d["glyph"], "hue": d["hue"], "desc": d["description"], "chips": chips,
+                      "ready": d["ready"], "dep_message": d["dependency_message"]})
+    return tiles
+
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    tools_data = [t.to_dict() for t in all_tools()]
     return templates.TemplateResponse(
-        request, "dashboard.html", {"tools": tools_data}
+        request, "dashboard.html", {"tiles": _home_tiles(), "tool_count": len(all_tools())}
     )
 
 
@@ -89,6 +122,12 @@ def _coerce_option(raw: Any, spec: dict[str, Any]) -> Any:
     return raw
 
 
+def _too_big_message() -> str:
+    limit = config.MAX_UPLOAD_BYTES
+    size = f"{limit // (1024 * 1024)} MB" if limit >= 1024 * 1024 else f"{limit // 1024} KB"
+    return f"Ukuran upload melebihi batas {size} per proses. Kurangi jumlah atau ukuran file."
+
+
 @app.post("/api/tool/{tool_id}/process")
 async def process_tool(tool_id: str, request: Request):
     tool = get_tool(tool_id)
@@ -98,6 +137,11 @@ async def process_tool(tool_id: str, request: Request):
     dep_msg = tool.check_dependencies()
     if dep_msg is not None:
         return JSONResponse({"error": dep_msg}, status_code=400)
+
+    too_big = _too_big_message()
+    length = request.headers.get("content-length", "")
+    if length.isdigit() and int(length) > config.MAX_UPLOAD_BYTES:
+        return JSONResponse({"error": too_big}, status_code=413)
 
     form = await request.form()
 
@@ -139,6 +183,11 @@ async def process_tool(tool_id: str, request: Request):
     output_dir = utils.new_job_dir(config.OUTPUT_DIR)
 
     input_paths = await utils.save_uploads(uploads, input_dir) if uploads else []
+    # Content-Length bisa absen (chunked), jadi ukur juga hasil simpanan.
+    if sum(p.stat().st_size for p in input_paths) > config.MAX_UPLOAD_BYTES:
+        for p in input_paths:
+            p.unlink(missing_ok=True)
+        return JSONResponse({"error": too_big}, status_code=413)
 
     # Jalankan proses (di thread agar tidak memblokir event loop)
     try:

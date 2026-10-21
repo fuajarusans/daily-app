@@ -25,6 +25,8 @@ class ImageResizeTool(Tool):
         "target ukuran file (KB) untuk dikompres otomatis."
     )
     icon = "🖼️"
+    glyph = "resize"
+    hue = "#4fb3d9"
     accepted_extensions = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"]
     supports_batch = True
     options = [
@@ -41,7 +43,7 @@ class ImageResizeTool(Tool):
         },
         {
             "name": "percent",
-            "label": "Skala (%) — untuk mode persen",
+            "label": "Skala (%), untuk mode persen",
             "type": "number",
             "min": 1,
             "max": 100,
@@ -49,21 +51,21 @@ class ImageResizeTool(Tool):
         },
         {
             "name": "width",
-            "label": "Lebar (px) — kosongkan untuk otomatis",
+            "label": "Lebar (px), kosongkan untuk otomatis",
             "type": "number",
             "min": 0,
             "default": 0,
         },
         {
             "name": "height",
-            "label": "Tinggi (px) — kosongkan untuk otomatis",
+            "label": "Tinggi (px), kosongkan untuk otomatis",
             "type": "number",
             "min": 0,
             "default": 0,
         },
         {
             "name": "quality",
-            "label": "Kualitas (1-100, untuk JPG/WEBP) — diabaikan bila Target diisi",
+            "label": "Kualitas (1-100, untuk JPG/WEBP). Diabaikan bila Target diisi",
             "type": "range",
             "min": 1,
             "max": 100,
@@ -71,7 +73,7 @@ class ImageResizeTool(Tool):
         },
         {
             "name": "target_kb",
-            "label": "Target ukuran file (KB) — 0 = nonaktif (PNG akan diubah ke JPG)",
+            "label": "Target ukuran file (KB). Isi 0 untuk nonaktif; PNG diubah ke JPG",
             "type": "number",
             "min": 0,
             "default": 0,

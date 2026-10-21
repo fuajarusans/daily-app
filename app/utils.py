@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 import shutil
+import sys
+import subprocess
 import time
 import uuid
 import zipfile
@@ -86,6 +88,20 @@ def find_libreoffice() -> Optional[str]:
     return None
 
 
+def no_window() -> dict:
+    """Argumen subprocess agar program konsol (Ghostscript, LibreOffice) tidak memunculkan
+    jendela hitam saat dipanggil dari aplikasi desktop tanpa konsol."""
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW, "stdin": subprocess.DEVNULL}
+    return {}
+
+
+def _gs_version(exe: Path) -> tuple[int, ...]:
+    """...\\gs10.07.1\\bin\\gswin64c.exe → (10, 7, 1); folder tak dikenal → ()."""
+    m = re.match(r"gs(\d+(?:\.\d+)*)$", exe.parent.parent.name, re.IGNORECASE)
+    return tuple(int(x) for x in m.group(1).split(".")) if m else ()
+
+
 def find_ghostscript() -> Optional[str]:
     """Cari Ghostscript di PATH atau lokasi instalasi umum Windows.
 
@@ -103,7 +119,8 @@ def find_ghostscript() -> Optional[str]:
             candidates.extend(base.glob("gs*/bin/gswin64c.exe"))
             candidates.extend(base.glob("gs*/bin/gswin32c.exe"))
     if candidates:
-        # Pilih versi tertinggi (urut mundur berdasarkan nama folder gs<versi>)
-        candidates.sort(key=lambda p: p.as_posix(), reverse=True)
+        # Pilih versi tertinggi. Urut per angka, bukan teks: "gs9.56" > "gs10.07"
+        # bila dibandingkan sebagai string.
+        candidates.sort(key=_gs_version, reverse=True)
         return str(candidates[0])
     return None

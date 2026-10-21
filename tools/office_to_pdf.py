@@ -15,6 +15,8 @@ class OfficeToPdfTool(Tool):
     name = "Office ke PDF"
     description = "Konversi Word/Excel/PowerPoint (.docx/.xlsx/.pptx) menjadi PDF."
     icon = "📑"
+    glyph = "file-type-pdf"
+    hue = "#c2417f"
     accepted_extensions = [".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".odt", ".ods", ".odp"]
     supports_batch = True
     options = []
@@ -45,7 +47,7 @@ class OfficeToPdfTool(Tool):
                 str(src),
             ]
             try:
-                subprocess.run(cmd, check=True, capture_output=True, timeout=300)
+                subprocess.run(cmd, check=True, capture_output=True, timeout=300, **utils.no_window())
             except subprocess.CalledProcessError as e:
                 msg = e.stderr.decode(errors="ignore") if e.stderr else str(e)
                 raise ToolError(f"Gagal mengonversi '{src.name}': {msg}")

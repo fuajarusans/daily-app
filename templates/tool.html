@@ -1,15 +1,18 @@
 {% extends "base.html" %}
-{% block title %}{{ tool.name }} — Daily App{% endblock %}
+{% block title %}{{ tool.name }} · Daily App{% endblock %}
 
 {% block content %}
-<a href="/" class="text-sm text-blue-600 hover:underline">&larr; Kembali ke dashboard</a>
+<a href="/" class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">{{ icon('arrow-left') }} Beranda</a>
 
-<div class="mt-4 bg-white rounded-lg border border-slate-200 p-6">
-    <div class="flex items-center gap-3 mb-2">
-        <span class="text-3xl">{{ tool.icon }}</span>
-        <h1 class="text-2xl font-bold">{{ tool.name }}</h1>
+<header class="mt-4 mb-6 flex items-start gap-4">
+    <span class="page-glyph">{{ icon(tool.glyph) }}</span>
+    <div class="min-w-0">
+        <h1 class="spotlight-title text-3xl sm:text-4xl text-slate-900">{{ tool.name }}</h1>
+        <p class="mt-2 text-slate-600 max-w-2xl">{{ tool.description }}</p>
     </div>
-    <p class="text-slate-500 mb-6">{{ tool.description }}</p>
+</header>
+
+<div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
 
     {% if not tool.ready %}
     <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 text-sm">
@@ -33,7 +36,7 @@
                           file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0
                           file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
             {% if tool.accepted_extensions %}
-            <p class="text-xs text-slate-400 mt-1">Format diterima: {{ tool.accepted_extensions | join(', ') }}</p>
+            <p class="text-xs text-slate-500 mt-1">Format diterima: {{ tool.accepted_extensions | join(', ') }}</p>
             {% endif %}
         </div>
         {% endif %}
@@ -83,14 +86,14 @@
         {% endfor %}
 
         <button type="submit" id="submit-btn"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-md
+                class="bg-ps hover:bg-ps-hover text-ps-on font-medium px-5 py-2.5 rounded-md
                        disabled:opacity-50 disabled:cursor-not-allowed">
             Proses
         </button>
     </form>
 
     <!-- Area status & hasil -->
-    <div id="status" class="mt-6 hidden"></div>
+    <div id="status" class="mt-6 hidden" role="status" aria-live="polite"></div>
     <div id="result" class="mt-4 hidden"></div>
 </div>
 {% endblock %}

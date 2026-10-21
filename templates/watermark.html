@@ -1,15 +1,18 @@
 {% extends "base.html" %}
-{% block title %}{{ tool.name }} — Daily App{% endblock %}
+{% block title %}{{ tool.name }} · Daily App{% endblock %}
 
 {% block content %}
-<a href="/" class="text-sm text-blue-600 hover:underline">&larr; Kembali ke dashboard</a>
+<a href="/" class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">{{ icon('arrow-left') }} Beranda</a>
 
-<div class="mt-4 bg-white rounded-lg border border-slate-200 p-6">
-    <div class="flex items-center gap-3 mb-2">
-        <span class="text-3xl">{{ tool.icon }}</span>
-        <h1 class="text-2xl font-bold">{{ tool.name }}</h1>
+<header class="mt-4 mb-6 flex items-start gap-4">
+    <span class="page-glyph">{{ icon(tool.glyph) }}</span>
+    <div class="min-w-0">
+        <h1 class="spotlight-title text-3xl sm:text-4xl text-slate-900">{{ tool.name }}</h1>
+        <p class="mt-2 text-slate-600 max-w-2xl">{{ tool.description }}</p>
     </div>
-    <p class="text-slate-500 mb-4">{{ tool.description }}</p>
+</header>
+
+<div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
 
     {% if not tool.ready %}
     <div class="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 text-sm">
@@ -18,7 +21,7 @@
     {% endif %}
 
     <div class="mb-6 bg-slate-50 border border-slate-200 text-slate-600 rounded-md p-3 text-xs">
-        ⚖️ Gunakan hanya pada gambar milik Anda sendiri atau yang Anda berhak menyuntingnya.
+        {{ icon('info-circle') }} Gunakan hanya pada gambar milik Anda sendiri atau yang Anda berhak menyuntingnya.
     </div>
 
     <!-- Langkah 1: pilih gambar -->
@@ -28,22 +31,22 @@
                class="block w-full text-sm text-slate-600 border border-slate-300 rounded-md
                       file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0
                       file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-        <p class="text-xs text-slate-400 mt-1">Format: {{ tool.accepted_extensions | join(', ') }}</p>
+        <p class="text-xs text-slate-500 mt-1">Format: {{ tool.accepted_extensions | join(', ') }}</p>
     </div>
 
     <!-- Langkah 2+: editor (muncul setelah gambar dimuat) -->
-    <div id="wm-editor" class="hidden">
+    <div id="wm-editor" class="hidden" data-esc-guard>
         <label class="block text-sm font-medium mb-2">2. Tandai area watermark</label>
 
         <!-- Toolbar -->
         <div class="flex flex-wrap items-center gap-2 mb-3 text-sm">
             <div class="inline-flex rounded-md border border-slate-300 overflow-hidden">
                 <button type="button" data-mode="brush" id="wm-mode-brush"
-                        class="wm-mode px-3 py-1.5 bg-blue-600 text-white">🖌️ Kuas</button>
+                        class="wm-mode inline-flex items-center gap-1.5 px-3 py-1.5 bg-ps text-ps-on" aria-pressed="true">{{ icon('brush') }} Kuas</button>
                 <button type="button" data-mode="rect" id="wm-mode-rect"
-                        class="wm-mode px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300">▭ Kotak</button>
+                        class="wm-mode inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300" aria-pressed="false">{{ icon('square') }} Kotak</button>
                 <button type="button" data-mode="eraser" id="wm-mode-eraser"
-                        class="wm-mode px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300">🧹 Hapus sapuan</button>
+                        class="wm-mode inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border-l border-slate-300" aria-pressed="false">{{ icon('eraser') }} Hapus sapuan</button>
             </div>
 
             <div class="flex items-center gap-2 ml-1">
@@ -53,9 +56,9 @@
             </div>
 
             <button type="button" id="wm-undo"
-                    class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">↩️ Undo</button>
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">{{ icon('arrow-back-up') }} Undo</button>
             <button type="button" id="wm-clear"
-                    class="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">🗑️ Bersihkan</button>
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">{{ icon('trash') }} Bersihkan</button>
         </div>
 
         <!-- Kanvas: gambar + overlay mask -->
@@ -65,18 +68,18 @@
             <canvas id="wm-mask-canvas"
                     class="absolute inset-0 w-full h-full cursor-crosshair touch-none"></canvas>
         </div>
-        <p class="text-xs text-slate-400 mt-1">Sapukan kuas (atau tarik kotak) menutupi watermark. Warna merah = area yang akan dihapus.</p>
+        <p class="text-xs text-slate-500 mt-1">Sapukan kuas (atau tarik kotak) menutupi watermark. Warna merah = area yang akan dihapus.</p>
 
         <!-- Langkah 3: opsi + proses -->
         <div class="mt-5 space-y-4">
             <div>
                 <label class="block text-sm font-medium mb-1" for="wm-engine">Engine</label>
                 <select id="wm-engine" class="block w-full text-sm border border-slate-300 rounded-md p-2 bg-white">
-                    <option value="opencv" selected>OpenCV — cepat &amp; ringan</option>
-                    <option value="lama">LaMa (AI) — lebih halus, unduh model sekali (~208 MB)</option>
+                    <option value="opencv" selected>OpenCV (cepat &amp; ringan)</option>
+                    <option value="lama">LaMa AI (lebih halus, unduh model ~208 MB sekali)</option>
                 </select>
-                <p id="wm-lama-note" class="hidden mt-1 text-xs text-amber-600">
-                    ⓘ Pemakaian pertama mengunduh model AI (~208 MB) — butuh internet sekali saja, setelah itu offline.
+                <p id="wm-lama-note" class="hidden mt-1 text-xs text-amber-700">
+                    {{ icon('info-circle') }} Pemakaian pertama mengunduh model AI (~208 MB). Butuh internet sekali saja, setelah itu offline.
                 </p>
             </div>
 
@@ -97,14 +100,14 @@
         </div>
 
         <button type="button" id="wm-process"
-                class="mt-5 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-md
+                class="mt-5 bg-ps hover:bg-ps-hover text-ps-on font-medium px-5 py-2.5 rounded-md
                        disabled:opacity-50 disabled:cursor-not-allowed">
             3. Proses
         </button>
     </div>
 
     <!-- Status & hasil -->
-    <div id="wm-status" class="mt-6 hidden"></div>
+    <div id="wm-status" class="mt-6 hidden" role="status" aria-live="polite"></div>
     <div id="wm-result" class="mt-4 hidden"></div>
 </div>
 {% endblock %}

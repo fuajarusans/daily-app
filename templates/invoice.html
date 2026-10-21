@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+{% block title %}Invoice Generator · Daily App{% endblock %}
+
+{% block content %}
+<style>
+  .inv-tab[aria-selected="true"] { background:#16253f; color:#f4f7fb; box-shadow:inset 0 -2px 0 #0070d1; }
+  .thumb { aspect-ratio: 1 / 1.414; background:#fff; border:1px solid #e2e8f0; border-radius:4px; overflow:hidden; position:relative; font-family:Arial, sans-serif; color:#222; }
+  .thumb .l { height:3px; background:#d6d6d6; border-radius:2px; margin:3px 0; }
+  .design-card[data-selected="true"] { border-color:#62abff; box-shadow:0 0 0 2px #62abff; }
+  .design-card:focus-visible { outline:2px solid #f4f7fb; outline-offset:3px; }
+  .inp { width:100%; border:1px solid #5b7088; border-radius:.375rem; padding:.45rem .7rem; background:#0b1426; color:#e6edf5; }
+  .inp:focus { outline:2px solid #f4f7fb; outline-offset:1px; box-shadow:0 0 0 4px rgba(0,112,209,.45); }
+  .inp:disabled { opacity:.55; }
+  .lbl { display:block; font-size:.8rem; font-weight:500; color:#cdd8e3; margin-bottom:.25rem; }
+</style>
+<!-- safelist kelas status untuk Tailwind Play CDN -->
+<span class="hidden bg-green-100 text-green-700 bg-red-100 text-red-700 bg-amber-100 text-amber-700"></span>
+
+<div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+  <h1 class="spotlight-title text-3xl sm:text-4xl text-slate-900 flex items-center gap-3"><span class="page-glyph">{{ icon('file-invoice') }}</span>Invoice Generator</h1>
+  <div id="summary" class="flex flex-wrap items-center gap-2 text-xs"></div>
+</div>
+<p class="text-slate-600 mb-5">Buat invoice PDF untuk beberapa brand sekaligus: nomor otomatis per brand, klien tersimpan, dan 10 pilihan desain.</p>
+
+<div id="profileHint" class="hidden mb-4 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-sm px-4 py-3">
+  Belum ada brand. Buka tab <b>Brand</b> untuk membuat brand pertama (nama, alamat, logo, rekening bank). Data brand tampil di setiap invoice.
+</div>
+
+<div class="inline-flex gap-1 bg-slate-200/70 rounded-lg p-1 mb-5" role="tablist">
+  <button class="inv-tab px-4 py-1.5 rounded-md text-sm font-medium text-slate-600" data-tab="invoices" aria-selected="true">Invoice</button>
+  <button class="inv-tab px-4 py-1.5 rounded-md text-sm font-medium text-slate-600" data-tab="clients" aria-selected="false">Klien</button>
+  <button class="inv-tab px-4 py-1.5 rounded-md text-sm font-medium text-slate-600" data-tab="brands" aria-selected="false">Brand</button>
+</div>
+
+<!-- ================================================================== -->
+<!-- TAB: INVOICE                                                        -->
+<!-- ================================================================== -->
+<section id="tab-invoices">
+  <div id="invListWrap">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <button id="btnNewInv" type="button"
+              class="inline-flex items-center gap-2 bg-ps hover:bg-ps-hover text-ps-on font-medium px-4 py-2 rounded-md">{{ icon('plus') }} Buat Invoice</button>
+      <input id="invQ" type="search" placeholder="Cari nomor atau klien…" aria-label="Cari invoice berdasarkan nomor atau klien"
+             class="flex-1 min-w-[180px] border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+      <select id="invBrand" class="hidden border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+        <option value="">Semua brand</option>
+      </select>
+      <select id="invStatus" class="border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+        <option value="">Semua status</option>
+        <option value="unpaid">Belum lunas</option>
+        <option value="overdue">Lewat jatuh tempo</option>
+        <option value="paid">Lunas</option>
+      </select>
+    </div>
+    <div id="invList" class="space-y-2"></div>
+    <div id="invEmpty" class="hidden bg-white rounded-lg p-8 text-center text-slate-500 border border-slate-200">
+      Belum ada invoice. Klik <b>Buat Invoice</b> untuk membuat yang pertama.
+    </div>
+  </div>
+
+  <!-- Form invoice -->
+  <form id="invForm" data-esc-guard class="hidden space-y-5" autocomplete="off">
+    <div class="flex items-center justify-between">
+      <h2 id="invFormTitle" class="text-lg font-semibold">Invoice baru</h2>
+      <button type="button" class="js-inv-cancel inline-flex items-center justify-center w-10 h-10 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50" title="Tutup" aria-label="Tutup form">{{ icon('x') }}</button>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-end gap-3 pb-3 mb-1 border-b border-slate-100">
+        <div class="w-12 h-12 shrink-0 rounded-md border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+          <img id="i-brandLogo" alt="" class="hidden max-w-full max-h-full object-contain">
+          <span id="i-brandInitial" class="text-lg font-bold text-slate-500"></span>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <label class="lbl">Brand penerbit invoice</label>
+          <select id="i-brand" class="inp"></select>
+        </div>
+        <p id="i-brandNote" class="text-xs text-slate-500 w-full sm:w-auto sm:pb-2"></p>
+      </div>
+      <div class="lg:col-span-2">
+        <label class="lbl">Nomor invoice</label>
+        <div class="flex gap-2">
+          <input id="i-number" class="inp font-mono" placeholder="001/INV/X/2026">
+          <button type="button" id="btnAutoNum" class="shrink-0 inline-flex items-center gap-1 px-3 rounded-md border border-slate-300 text-sm hover:bg-slate-50" title="Isi nomor otomatis">{{ icon('refresh') }} Otomatis</button>
+        </div>
+      </div>
+      <div><label class="lbl">Tanggal invoice</label><input id="i-date" type="date" class="inp"></div>
+      <div><label class="lbl">Jatuh tempo</label><input id="i-due" type="date" class="inp"></div>
+      <div>
+        <label class="lbl">Status</label>
+        <select id="i-status" class="inp">
+          <option value="unpaid">Belum lunas</option>
+          <option value="paid">Lunas</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Klien -->
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <h3 class="font-semibold">Ditagihkan kepada</h3>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="i-clientPick" class="inp sm:w-72"><option value="">Pilih klien tersimpan…</option></select>
+        </div>
+      </div>
+      <input type="hidden" id="i-clientId">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="lbl">Nama klien / perusahaan *</label><input id="c-name" class="inp" placeholder="PT Maju Bersama"></div>
+        <div><label class="lbl">NPWP (opsional)</label><input id="c-npwp" class="inp" placeholder="01.234.567.8-901.000"></div>
+        <div class="sm:row-span-2"><label class="lbl">Alamat</label><textarea id="c-address" rows="4" class="inp resize-y"></textarea></div>
+        <div><label class="lbl">Telepon</label><input id="c-phone" class="inp"></div>
+        <div><label class="lbl">Email</label><input id="c-email" type="email" class="inp"></div>
+      </div>
+      <button type="button" id="btnSaveClient" class="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">{{ icon('device-floppy') }} Simpan sebagai klien tersimpan</button>
+      <span id="clientSaveMsg" class="text-sm text-green-700 ml-2"></span>
+    </div>
+
+    <!-- Item -->
+    <div class="bg-white rounded-lg border border-slate-200 p-5">
+      <h3 class="font-semibold mb-3">Item</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[640px]">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-slate-200">
+              <th class="py-2 pr-2 font-medium">Deskripsi</th>
+              <th class="py-2 px-2 font-medium w-20">Qty</th>
+              <th class="py-2 px-2 font-medium w-24">Satuan</th>
+              <th class="py-2 px-2 font-medium w-36">Harga (Rp)</th>
+              <th class="py-2 px-2 font-medium w-36 text-right">Jumlah</th>
+              <th class="w-8"></th>
+            </tr>
+          </thead>
+          <tbody id="itemRows"></tbody>
+        </table>
+      </div>
+      <button type="button" id="btnAddItem" class="mt-3 text-sm px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50">+ Tambah item</button>
+
+      <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="lbl">Diskon</label>
+              <select id="i-discType" class="inp">
+                <option value="none">Tanpa diskon</option>
+                <option value="percent">Persen (%)</option>
+                <option value="amount">Nominal (Rp)</option>
+              </select>
+            </div>
+            <div><label class="lbl">Nilai diskon</label><input id="i-discVal" type="number" min="0" step="any" class="inp" value="0"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 items-end">
+            <label class="inline-flex items-center gap-2 text-sm text-slate-700 pb-2">
+              <input id="i-taxOn" type="checkbox" class="rounded border-slate-300"> Kenakan PPN
+            </label>
+            <div><label class="lbl">Tarif PPN (%)</label><input id="i-taxRate" type="number" min="0" max="100" step="any" class="inp"></div>
+          </div>
+        </div>
+        <div class="bg-slate-50 rounded-md p-4 text-sm">
+          <div class="flex justify-between py-1"><span class="text-slate-500">Subtotal</span><span id="t-sub">Rp 0</span></div>
+          <div id="t-discRow" class="flex justify-between py-1"><span class="text-slate-500" id="t-discLbl">Diskon</span><span id="t-disc">- Rp 0</span></div>
+          <div id="t-taxRow" class="flex justify-between py-1"><span class="text-slate-500" id="t-taxLbl">PPN</span><span id="t-tax">Rp 0</span></div>
+          <div class="flex justify-between pt-2 mt-1 border-t border-slate-300 text-base font-bold"><span>Total</span><span id="t-total">Rp 0</span></div>
+          <p class="text-xs italic text-slate-500 mt-2" id="t-words"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desain & catatan -->
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="font-semibold">Desain</h3>
+        <div id="i-colorWrap" class="flex items-center gap-2 text-sm">
+          <label for="i-color" class="text-slate-600">Warna aksen</label>
+          <input id="i-color" type="color" class="h-8 w-10 border border-slate-300 rounded cursor-pointer">
+          <button type="button" id="btnColorReset" class="text-xs text-slate-500 hover:underline">bawaan</button>
+        </div>
+      </div>
+      <div id="i-designs" class="grid grid-cols-3 sm:grid-cols-5 gap-3" role="radiogroup" aria-label="Desain invoice"></div>
+      <div>
+        <label class="lbl">Catatan / syarat</label>
+        <textarea id="i-notes" rows="3" class="inp resize-y" placeholder="Terima kasih atas kepercayaan Anda."></textarea>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 sticky bottom-0 bg-slate-100/95 py-3">
+      <button type="submit" class="inline-flex items-center gap-1.5 bg-ps hover:bg-ps-hover text-ps-on font-semibold px-5 py-2 rounded-md">{{ icon('device-floppy') }} Simpan</button>
+      <button type="button" id="btnPreview" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-slate-300 bg-white hover:bg-slate-50">{{ icon('eye') }} Pratinjau PDF</button>
+      <button type="button" class="js-inv-cancel px-4 py-2 rounded-md text-slate-600 hover:text-slate-900">Batal</button>
+      <span id="invFormMsg" class="text-sm text-red-700"></span>
+    </div>
+  </form>
+</section>
+
+<!-- ================================================================== -->
+<!-- TAB: KLIEN                                                          -->
+<!-- ================================================================== -->
+<section id="tab-clients" class="hidden">
+  <button id="btnNewClient" type="button"
+          class="mb-4 inline-flex items-center gap-2 bg-ps hover:bg-ps-hover text-ps-on font-medium px-4 py-2 rounded-md">{{ icon('plus') }} Tambah Klien</button>
+  <form id="clientForm" data-esc-guard class="hidden bg-white rounded-lg border border-slate-200 p-5 mb-5 space-y-3" autocomplete="off">
+    <input type="hidden" id="k-id">
+    <div class="flex items-center justify-between">
+      <h2 id="clientFormTitle" class="font-semibold">Klien baru</h2>
+      <button type="button" class="js-client-cancel inline-flex items-center justify-center w-10 h-10 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50" title="Tutup" aria-label="Tutup form klien">{{ icon('x') }}</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div><label class="lbl">Nama klien / perusahaan *</label><input id="k-name" class="inp"></div>
+      <div><label class="lbl">NPWP (opsional)</label><input id="k-npwp" class="inp"></div>
+      <div class="sm:row-span-2"><label class="lbl">Alamat</label><textarea id="k-address" rows="4" class="inp resize-y"></textarea></div>
+      <div><label class="lbl">Telepon</label><input id="k-phone" class="inp"></div>
+      <div><label class="lbl">Email</label><input id="k-email" type="email" class="inp"></div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="submit" class="bg-ps hover:bg-ps-hover text-ps-on font-medium px-4 py-2 rounded-md">Simpan</button>
+      <button type="button" class="js-client-cancel px-3 py-2 rounded-md border border-slate-300 text-slate-600">Batal</button>
+      <span id="clientFormMsg" class="text-sm text-red-600"></span>
+    </div>
+  </form>
+  <div id="clientList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+  <div id="clientEmpty" class="hidden bg-white rounded-lg p-8 text-center text-slate-500 border border-slate-200">
+    Belum ada klien tersimpan.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- TAB: BRAND (profil perusahaan; bisa lebih dari satu)                -->
+<!-- ================================================================== -->
+<section id="tab-brands" class="hidden">
+  <div id="brandListWrap">
+    <button id="btnNewBrand" type="button"
+            class="mb-4 inline-flex items-center gap-2 bg-ps hover:bg-ps-hover text-ps-on font-medium px-4 py-2 rounded-md">{{ icon('plus') }} Tambah Brand</button>
+    <div id="brandList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    <div id="brandEmpty" class="hidden bg-white rounded-lg p-8 text-center text-slate-500 border border-slate-200">
+      Belum ada brand. Klik <b>Tambah Brand</b> untuk membuat yang pertama.
+    </div>
+  </div>
+
+  <form id="brandForm" data-esc-guard class="hidden space-y-5" autocomplete="off">
+    <input type="hidden" id="b-id">
+    <div class="flex items-center justify-between">
+      <h2 id="brandFormTitle" class="text-lg font-semibold">Brand baru</h2>
+      <button type="button" class="js-brand-cancel inline-flex items-center justify-center w-10 h-10 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50" title="Tutup" aria-label="Tutup form brand">{{ icon('x') }}</button>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <h3 class="font-semibold">Identitas brand</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="lbl">Nama brand / perusahaan *</label><input id="b-name" class="inp" placeholder="CV Contoh Jaya"></div>
+        <div><label class="lbl">NPWP (opsional)</label><input id="b-npwp" class="inp"></div>
+        <div class="sm:row-span-2"><label class="lbl">Alamat</label><textarea id="b-address" rows="4" class="inp resize-y"></textarea></div>
+        <div><label class="lbl">Telepon</label><input id="b-phone" class="inp"></div>
+        <div><label class="lbl">Email</label><input id="b-email" type="email" class="inp"></div>
+        <div><label class="lbl">Website (opsional)</label><input id="b-website" class="inp"></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 pt-2">
+        <div class="w-40 h-20 border border-dashed border-slate-300 rounded-md flex items-center justify-center bg-slate-50 overflow-hidden">
+          <img id="logoImg" alt="Logo" class="hidden max-w-full max-h-full object-contain">
+          <span id="logoNone" class="text-xs text-slate-500">Belum ada logo</span>
+        </div>
+        <div class="space-y-2">
+          <label class="inline-block cursor-pointer text-sm px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-600">
+            {{ icon('upload') }} Pilih logo<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only">
+          </label>
+          <button type="button" id="btnLogoDel" class="hidden text-sm text-red-600 hover:underline ml-2">Hapus logo</button>
+          <p class="text-xs text-slate-500">PNG transparan paling bagus. Maks 5 MB.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <h3 class="font-semibold">Rekening bank</h3>
+      <div id="bankRows" class="space-y-2"></div>
+      <button type="button" id="btnAddBank" class="text-sm px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50">+ Tambah rekening</button>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <h3 class="font-semibold">Pengaturan default brand ini</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div><label class="lbl">Prefix nomor (unik per brand)</label><input id="b-prefix" class="inp font-mono" placeholder="INV"><p class="text-xs text-slate-500 mt-1">Contoh: <span id="b-prefixEx" class="font-mono">001/INV/X/2026</span></p></div>
+        <div><label class="lbl">Jatuh tempo (hari)</label><input id="b-due" type="number" min="0" max="365" class="inp"></div>
+        <div><label class="lbl">Tarif PPN default (%)</label><input id="b-tax" type="number" min="0" max="100" step="any" class="inp"></div>
+      </div>
+      <div><label class="lbl">Catatan default</label><textarea id="b-notes" rows="3" class="inp resize-y" placeholder="Terima kasih atas kepercayaan Anda."></textarea></div>
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input id="b-default" type="checkbox" class="rounded border-slate-300"> Jadikan brand default (otomatis terpilih saat membuat invoice baru)
+      </label>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-5 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="font-semibold">Desain default</h3>
+          <p class="text-xs text-slate-500">Dipakai untuk invoice baru brand ini; tetap bisa diganti per invoice. Klik <b>Contoh PDF</b> untuk melihat hasil asli dengan data brand ini (simpan dulu agar perubahan terbaru ikut tampil).</p>
+        </div>
+        <div id="b-colorWrap" class="flex items-center gap-2 text-sm">
+          <label for="b-color" class="text-slate-600">Warna aksen</label>
+          <input id="b-color" type="color" class="h-8 w-10 border border-slate-300 rounded cursor-pointer">
+          <button type="button" id="btnBColorReset" class="text-xs text-slate-500 hover:underline">bawaan</button>
+        </div>
+      </div>
+      <div id="b-designs" class="grid grid-cols-2 sm:grid-cols-5 gap-4" role="radiogroup" aria-label="Desain default brand"></div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 sticky bottom-0 bg-slate-100/95 py-3">
+      <button type="submit" class="inline-flex items-center gap-1.5 bg-ps hover:bg-ps-hover text-ps-on font-semibold px-5 py-2 rounded-md">{{ icon('device-floppy') }} Simpan brand</button>
+      <button type="button" class="js-brand-cancel px-4 py-2 rounded-md text-slate-600 hover:text-slate-900">Batal</button>
+      <button type="button" id="btnBrandDel" class="hidden ml-auto px-3 py-2 rounded-md border border-red-200 text-red-600 hover:bg-red-50 text-sm inline-flex items-center gap-1.5">{{ icon('trash') }} Hapus brand</button>
+      <span id="brandMsg" class="text-sm w-full"></span>
+    </div>
+  </form>
+</section>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-4 py-2 rounded-md shadow-lg"></div>
+
+<!-- ================================================================== -->
+<!-- Sketsa thumbnail desain (diklon oleh JS; --acc = warna aksen)        -->
+<!-- ================================================================== -->
+<div id="thumbs" class="hidden">
+  <div data-thumb="klasik"><div class="thumb" style="padding:9%">
+    <div style="text-align:center;font-size:8px;font-weight:700">PT CONTOH</div><div class="l" style="width:60%;margin:3px auto"></div>
+    <div style="border-top:1.5px solid #222;margin:5px 0"></div>
+    <div style="font-size:7px;text-align:center;letter-spacing:1px;font-weight:700">INVOICE</div>
+    <div style="border:1px solid #222;margin-top:7px"><div class="l" style="margin:4px"></div><div class="l" style="margin:4px"></div><div class="l" style="margin:4px"></div></div>
+    <div class="l" style="width:40%;margin-left:auto;margin-top:6px;background:#222"></div></div></div>
+
+  <div data-thumb="modern"><div class="thumb">
+    <div style="background:var(--acc);height:26%;padding:8%;color:#fff;text-align:right"><div style="font-size:9px;font-weight:700">INVOICE</div></div>
+    <div style="padding:8%"><div class="l" style="width:50%"></div><div style="background:var(--acc);height:6px;margin-top:8px"></div><div class="l"></div><div class="l" style="background:#e5e7eb"></div><div class="l"></div>
+    <div style="background:var(--acc);height:8px;width:45%;margin:8px 0 0 auto"></div></div></div></div>
+
+  <div data-thumb="minimalis"><div class="thumb" style="padding:11%">
+    <div style="font-size:13px;font-weight:300">Invoice</div>
+    <div class="l" style="width:35%;background:#eee;margin-top:8px"></div>
+    <div style="border-top:1px solid #ddd;margin-top:14px"></div><div class="l" style="background:#eee;margin-top:6px"></div><div class="l" style="background:#eee"></div>
+    <div style="font-size:8px;text-align:right;margin-top:8px;font-weight:700">Rp 0</div></div></div>
+
+  <div data-thumb="spreadsheet"><div class="thumb" style="padding:7%">
+    <div style="display:flex;justify-content:space-between"><div class="l" style="width:35%;background:#999"></div><div style="font-size:7px;font-weight:700">INVOICE</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);margin-top:5px;border:0.5px solid #888">
+      <div style="background:#ddd;height:6px;border:0.5px solid #888"></div><div style="background:#ddd;border:0.5px solid #888"></div><div style="background:#ddd;border:0.5px solid #888"></div><div style="background:#ddd;border:0.5px solid #888"></div>
+      <div style="height:6px;border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div>
+      <div style="height:6px;border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div>
+      <div style="height:6px;border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div>
+      <div style="height:6px;border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div><div style="border:0.5px solid #888"></div></div></div></div>
+
+  <div data-thumb="elegan"><div class="thumb" style="padding:9%;border-top:4px double var(--acc)">
+    <div style="font-family:Georgia,serif;font-size:11px;font-style:italic;text-align:center;color:var(--acc)">Invoice</div>
+    <div style="height:1px;background:var(--acc);width:30%;margin:4px auto"></div>
+    <div class="l" style="margin-top:9px"></div><div class="l"></div><div class="l"></div>
+    <div style="border-top:1px solid var(--acc);border-bottom:1px solid var(--acc);height:7px;width:50%;margin:8px 0 0 auto"></div></div></div>
+
+  <div data-thumb="korporat"><div class="thumb" style="display:flex">
+    <div style="width:30%;background:var(--acc);padding:6%"><div style="width:12px;height:12px;background:#fff;opacity:.6;border-radius:50%"></div><div class="l" style="background:rgba(255,255,255,.55);margin-top:9px"></div><div class="l" style="background:rgba(255,255,255,.55)"></div></div>
+    <div style="flex:1;padding:8%"><div style="font-size:8px;font-weight:700;color:var(--acc)">INVOICE</div><div class="l" style="margin-top:9px"></div><div class="l"></div><div class="l"></div></div></div></div>
+
+  <div data-thumb="bold"><div class="thumb" style="padding:8%">
+    <div style="font-size:15px;font-weight:800;line-height:1">INVOICE</div>
+    <div style="background:var(--acc);height:3px;margin-top:5px"></div>
+    <div class="l" style="width:45%;margin-top:7px"></div><div class="l" style="margin-top:7px"></div><div class="l"></div>
+    <div style="background:var(--acc);height:14px;margin-top:8px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;color:#fff;font-size:7px">Total</div></div></div>
+
+  <div data-thumb="kreatif"><div class="thumb" style="padding:8%">
+    <div style="position:absolute;top:0;right:0;width:0;height:0;border-top:34px solid var(--acc);border-left:52px solid transparent"></div>
+    <div style="position:absolute;bottom:0;left:0;width:0;height:0;border-bottom:22px solid var(--acc);border-right:36px solid transparent;opacity:.6"></div>
+    <div style="font-size:9px;color:var(--acc);font-weight:700;margin-top:10px">INVOICE</div>
+    <div class="l" style="width:50%;margin-top:10px"></div><div class="l"></div><div class="l"></div></div></div>
+
+  <div data-thumb="ringkas"><div class="thumb" style="padding:6%">
+    <div style="display:flex;justify-content:space-between;font-size:6px;font-weight:700"><span>PT CONTOH</span><span>INVOICE</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:3px"><div class="l" style="width:45%"></div><div class="l" style="width:35%"></div></div>
+    <div style="border-top:1px solid #222;margin:3px 0"></div>
+    <div class="l"></div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l"></div>
+    <div class="l" style="width:35%;margin-left:auto;background:#555"></div></div></div>
+
+  <div data-thumb="kop-surat"><div class="thumb" style="padding:8%">
+    <div style="display:flex;gap:5px;align-items:center"><div style="width:14px;height:14px;border:1px solid #333;border-radius:50%"></div><div style="flex:1"><div style="font-size:7px;font-weight:700;text-align:center">PT CONTOH</div><div class="l" style="width:80%;margin:2px auto"></div></div></div>
+    <div style="border-top:2px solid #222;border-bottom:0.5px solid #222;height:2px;margin:4px 0"></div>
+    <div style="font-size:7px;text-align:center;text-decoration:underline;font-weight:700">INVOICE</div>
+    <div class="l" style="margin-top:6px"></div><div class="l"></div>
+    <div style="border:1px solid #333;height:7px;margin-top:5px"></div></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.INVOICE_DESIGNS = {{ designs|tojson }};</script>
+<script src="/static/invoice.js"></script>
+{% endblock %}

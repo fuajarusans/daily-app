@@ -38,6 +38,8 @@ class WatermarkRemoveTool(Tool):
         "Buka tool untuk menandai area di kanvas."
     )
     icon = "🧽"
+    glyph = "eraser"
+    hue = "#e0663e"
     # Halaman kustom berkanvas (lihat app/watermark_routes.py). Dashboard akan
     # menautkan kartu ke URL ini, bukan ke form generik /tool/<id>.
     custom_url = "/watermark"
@@ -51,8 +53,8 @@ class WatermarkRemoveTool(Tool):
             "label": "Engine",
             "type": "select",
             "choices": [
-                {"value": "opencv", "label": "OpenCV — cepat & ringan"},
-                {"value": "lama", "label": "LaMa (AI) — lebih halus, unduh model sekali (~208 MB)"},
+                {"value": "opencv", "label": "OpenCV (cepat & ringan)"},
+                {"value": "lama", "label": "LaMa AI (lebih halus, unduh model ~208 MB sekali)"},
             ],
             "default": "opencv",
         },
@@ -179,7 +181,7 @@ class WatermarkRemoveTool(Tool):
         if len(input_paths) < 2:
             raise ToolError(
                 "Butuh gambar DAN mask. Gunakan halaman tool (/watermark) untuk "
-                "menandai area watermark — jangan mengunggah lewat form biasa."
+                "menandai area watermark, bukan lewat form biasa."
             )
         masks = [p for p in input_paths if MASK_HINT in p.stem.lower()]
         images = [p for p in input_paths if p not in masks]

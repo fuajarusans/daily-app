@@ -6,6 +6,7 @@ ter-cache, tool berjalan sepenuhnya offline.
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,8 @@ class RemoveBackgroundTool(Tool):
         "saat pemakaian pertama (butuh internet sekali saja). Hasil berupa PNG transparan."
     )
     icon = "✂️"
+    glyph = "background"
+    hue = "#2f7fe0"
     accepted_extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp"]
     supports_batch = True
     options = []
@@ -29,6 +32,9 @@ class RemoveBackgroundTool(Tool):
         try:
             from rembg import remove
         except ImportError:
+            # Penyebab asli dicatat ke log: di exe, ImportError bisa berasal dari
+            # dependency rembg (mis. metadata paket yang tidak ikut terbungkus).
+            logging.getLogger(__name__).exception("Gagal mengimpor rembg")
             raise ToolError(
                 "Library 'rembg' belum terpasang. Jalankan: pip install rembg"
             )

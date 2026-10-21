@@ -40,7 +40,7 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Memproses…";
         showStatus(
-            '<div class="flex items-center gap-2"><span class="animate-spin">⏳</span> Sedang memproses, mohon tunggu…</div>',
+            '<div class="flex items-center gap-2">' + DailyIcon("loader-2", "animate-spin") + ' Sedang memproses, mohon tunggu…</div>',
             "bg-blue-50 border border-blue-200 text-blue-800"
         );
 
@@ -52,20 +52,20 @@
             const data = await resp.json();
 
             if (!resp.ok) {
-                showStatus("❌ " + (data.error || "Terjadi kesalahan."),
+                showStatus(DailyIcon("alert-triangle") + " " + (data.error || "Terjadi kesalahan."),
                     "bg-red-50 border border-red-200 text-red-800");
             } else {
-                showStatus("✅ Berhasil diproses.",
+                showStatus(DailyIcon("circle-check") + " Berhasil diproses.",
                     "bg-green-50 border border-green-200 text-green-800");
                 show(resultBox,
                     `<a href="${data.download_url}" download
-                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2.5 rounded-md">
-                        ⬇️ Unduh hasil (${data.filename})
+                        class="inline-flex max-w-full items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-medium px-5 py-2.5 rounded-md">
+                        ${DailyIcon("download")} <span class="min-w-0 break-all">Unduh hasil (${data.filename})</span>
                      </a>`,
                     "");
             }
         } catch (err) {
-            showStatus("❌ Tidak dapat terhubung ke server: " + err.message,
+            showStatus(DailyIcon("alert-triangle") + " Tidak dapat terhubung ke server: " + err.message,
                 "bg-red-50 border border-red-200 text-red-800");
         } finally {
             submitBtn.disabled = false;

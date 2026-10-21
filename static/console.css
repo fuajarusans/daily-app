@@ -1,0 +1,195 @@
+/* Gaya tema konsol Daily App (lihat DESIGN.md). Warna dasar ada di static/theme.js. */
+:root {
+  --base: #070d1c;
+  --surface: #0f1a30;
+  --raised: #16253f;
+  --text: #e6edf5;
+  --ps: #0070d1;          /* biru PlayStation (tombol utama) */
+  --accent: #62abff;      /* biru PS versi terang (ikon aktif, tautan) */
+  --glow: rgba(0, 112, 209, 0.45);
+  --ring: #f4f7fb;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--base);
+  /* Cahaya biru PlayStation di kanan atas: titik fokus kanvas gelap (DESIGN.md). */
+  background-image: radial-gradient(70rem 40rem at 100% -10%, rgba(0, 112, 209, 0.28), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Motif identitas: cincin fokus putih + sedikit cahaya teal pada elemen yang difokus. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--glow);
+}
+
+/* Ikon dari sprite Tabler. */
+.ico {
+  width: 1.15em;
+  height: 1.15em;
+  display: inline-block;
+  vertical-align: -0.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+/* Satu gaya field untuk semua halaman (sebelumnya tiap halaman berbeda; audit no. 39). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+textarea,
+select {
+  background-color: #0b1426;
+  color: #e6edf5;
+  border-color: #5b7088;
+}
+input[type="file"] { color: #b4c2d1; }
+/* Slider, checkbox, radio memakai aksen teal. */
+:root { accent-color: var(--accent); }
+
+/* Kontrol bawaan browser ikut tema gelap. */
+html input::placeholder, html textarea::placeholder { color: #8fa1b6; opacity: 1; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.85); }
+input[type="file"]::file-selector-button { cursor: pointer; }
+
+/* ---- Beranda: rail tile ---- */
+.rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* Ruang di sekeliling agar tile yang membesar + cincin fokus tidak terpotong. */
+  padding: 1.5rem 1rem 1.25rem;
+  margin: 0 -1rem;
+  scroll-padding: 0 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: #26384f transparent;
+}
+.tile {
+  scroll-snap-align: start;
+  flex: none;
+  width: 6.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.tile-face {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid #22334d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  transform-origin: bottom center;
+}
+.tile-face .ico { width: 2.5rem; height: 2.5rem; stroke-width: 1.5; color: #b4c2d1; }
+.tile-label { font-size: 0.8rem; text-align: center; line-height: 1.25; color: #b4c2d1; }
+.tile:hover .tile-face { background: var(--raised); border-color: #5b7088; }
+/* Fokus: tile membesar + cincin (motif). Outline bawaan dipindah ke wajah tile. */
+.tile:focus-visible { outline: none; box-shadow: none; }
+.tile:focus-visible .tile-face,
+.tile.is-focus .tile-face {
+  transform: scale(1.14);
+  /* Warna tile (--hue, per alat) mewarnai wajah tile yang difokus, seperti sampul game. */
+  background: color-mix(in srgb, var(--hue, var(--ps)) 45%, var(--surface));
+  border-color: transparent;
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--glow);
+}
+.tile:focus-visible .tile-face .ico, .tile.is-focus .tile-face .ico { color: #ffffff; }
+.tile:focus-visible .tile-label, .tile.is-focus .tile-label { color: #f4f7fb; font-weight: 600; }
+.tile-badge {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  min-width: 1.4rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  background: #f69ba1;
+  color: #131f33;
+}
+@media (min-width: 640px) {
+  /* Di layar lebar, nama hanya untuk tile terfokus (seperti konsol); di ponsel selalu tampil. */
+  .rail .tile-label { opacity: 0; transition: opacity 150ms ease; }
+  .rail .tile:focus-visible .tile-label, .rail .tile.is-focus .tile-label, .rail .tile:hover .tile-label { opacity: 1; }
+}
+
+/* Sorotan Beranda */
+.spotlight-title { font-weight: 300; letter-spacing: -0.01em; }
+
+/* Latar sorotan Beranda: berganti warna mengikuti tile yang difokus (gaya PS5, pilihan
+   pemilik). @property membuat perpindahan warnanya halus. Isi teks berada di kiri, cahaya
+   warna di kanan, sehingga kontras teks tetap terjaga. */
+@property --spot {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #0070d1;
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --spot: #0070d1;
+  background:
+    /* 38% = batas agar teks sorotan tetap >= 4,5:1 untuk semua warna tile, di layar mana pun. */
+    radial-gradient(60rem 34rem at 82% 18%, color-mix(in srgb, var(--spot) 38%, transparent), transparent 70%),
+    linear-gradient(180deg, transparent 55%, var(--base) 92%);
+  transition: --spot 450ms ease;
+}
+
+/* Tombol utama sorotan berbentuk pil, seperti tombol di layar beranda konsol. */
+.btn-pill { border-radius: 999px; padding-left: 1.75rem; padding-right: 1.75rem; }
+
+/* Kepala halaman kerja: kotak ikon tool. */
+.page-glyph {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid #26384f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.page-glyph .ico { width: 1.75rem; height: 1.75rem; color: var(--accent); }
+
+/* Tautan Instagram di footer. */
+.ig-link { display: inline-flex; align-items: center; gap: 0.35rem; color: #cdd8e3; }
+.ig-link:hover { color: #ffffff; }
+.ig-link .ico { width: 1.2rem; height: 1.2rem; }
+
+/* Petunjuk tombol di bawah layar (desktop). */
+.key {
+  display: inline-block;
+  min-width: 1.6rem;
+  padding: 0 0.35rem;
+  border: 1px solid #5b7088;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1.35rem;
+  text-align: center;
+  color: #e6edf5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .tile:focus-visible .tile-face, .tile.is-focus .tile-face { transform: none; }
+  .backdrop { transition: none; }
+}

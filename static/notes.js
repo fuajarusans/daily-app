@@ -5,6 +5,7 @@
   var allNotes = [];
   var editingId = null;
   var catFilter = ""; // "" = semua kategori
+  var expanded = {};  // id catatan yang isinya sedang dibuka penuh
 
   var CATS = window.CATEGORIES || [];
   var CAT_BY_ID = {};
@@ -12,14 +13,10 @@
   var DEFAULT_CAT = (CATS[0] && CATS[0].id) || "umum";
 
   // Peta warna kategori -> kelas Tailwind (string literal agar pasti ter-generate).
-  var CAT_CHIP = {
-    slate: "bg-slate-100 text-slate-700",
-    green: "bg-green-100 text-green-700",
-    blue: "bg-blue-100 text-blue-700",
-    purple: "bg-purple-100 text-purple-700",
-    amber: "bg-amber-100 text-amber-700",
-    pink: "bg-pink-100 text-pink-700"
-  };
+  // Kategori dibedakan oleh ikon, bukan warna: warna (merah/kuning/hijau) khusus untuk status
+  // jatuh tempo (DESIGN.md, palet). Kunci "color" di config tetap dibaca agar data lama aman.
+  var NEUTRAL_CHIP = "bg-slate-100 text-slate-700";
+  var CAT_CHIP = {};
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -53,7 +50,7 @@
     soon:      { border: "border-l-4 border-yellow-400", badge: "bg-yellow-100 text-yellow-700" },
     scheduled: { border: "border-l-4 border-slate-300",  badge: "bg-slate-100 text-slate-600" },
     none:      { border: "",                              badge: "" },
-    done:      { border: "",                              badge: "bg-slate-100 text-slate-500" }
+    done:      { border: "",                              badge: "bg-slate-100 text-slate-600" }
   };
 
   function dueLabel(note) {
@@ -71,39 +68,51 @@
   }
 
   function catMeta(id) {
-    return CAT_BY_ID[id] || CAT_BY_ID[DEFAULT_CAT] || { label: "Umum", emoji: "🗒️", color: "slate" };
+    return CAT_BY_ID[id] || CAT_BY_ID[DEFAULT_CAT] || { label: "Umum", icon: "notes", color: "slate" };
   }
-  function chipCls(color) { return CAT_CHIP[color] || CAT_CHIP.slate; }
+  function chipCls(color) { return CAT_CHIP[color] || NEUTRAL_CHIP; }
   function noteCat(n) { return CAT_BY_ID[n.category] ? n.category : DEFAULT_CAT; }
 
   function cardHtml(n) {
     var meta = STATUS[n.status] || STATUS.none;
     var cat = catMeta(n.category);
-    var titleCls = n.done ? "line-through text-slate-400" : "text-slate-900";
-    var catChip = '<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5 ' + chipCls(cat.color) + '">' + cat.emoji + " " + esc(cat.label) + "</span>";
+    var titleCls = n.done ? "line-through text-slate-500" : "text-slate-900";
+    var catChip = '<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5 ' + chipCls(cat.color) + '">' + DailyIcon(cat.icon || "notes") + " " + esc(cat.label) + "</span>";
     var due = dueLabel(n);
     var dueChip = due
       ? '<span class="text-xs font-medium rounded-full px-2 py-0.5 ' + (meta.badge || "bg-slate-100 text-slate-600") + '">' + esc(due) + "</span>"
       : "";
     var tags = (n.tags || []).map(function (t) {
-      return '<span class="inline-block text-[11px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">#' + esc(t) + "</span>";
+      return '<span class="inline-block max-w-full break-all text-[11px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">#' + esc(t) + "</span>";
     }).join(" ");
-    var body = n.body ? '<p class="text-sm text-slate-600 mt-1 whitespace-pre-wrap">' + esc(n.body) + "</p>" : "";
-    var pin = n.pinned ? '<span title="Disematkan">📌</span> ' : "";
+    var body = "";
+    if (n.body) {
+      // Isi dianggap panjang bila lebih dari ~2 baris: kartu menampilkan pratinjau saja.
+      var long = n.body.length > 140 || (n.body.match(/\n/g) || []).length >= 2;
+      var open = !!expanded[n.id];
+      body = '<p id="nb-' + n.id + '" class="text-sm text-slate-600 mt-1 whitespace-pre-wrap break-words' +
+        (long && !open ? " line-clamp-2" : "") + '">' + esc(n.body) + "</p>";
+      if (long) {
+        body += '<button type="button" data-action="toggle" data-id="' + n.id + '" aria-expanded="' + open +
+          '" aria-controls="nb-' + n.id + '" class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline">' +
+          (open ? "Tutup" : "Selengkapnya") + " " + DailyIcon(open ? "chevron-up" : "chevron-down") + "</button>";
+      }
+    }
+    var pin = n.pinned ? '<span class="text-blue-700" title="Disematkan">' + DailyIcon("pin") + '<span class="sr-only">Disematkan</span></span> ' : "";
     return '' +
-      '<div class="bg-white rounded-lg border border-slate-200 ' + meta.border + ' p-4 ' + (n.done ? "opacity-70" : "") + '">' +
+      '<div class="bg-white rounded-lg border border-slate-200 ' + meta.border + ' p-4">' +
         '<div class="flex items-start justify-between gap-3">' +
-          '<div class="min-w-0">' +
+          '<div class="min-w-0 flex-1">' +
             '<h3 class="font-semibold ' + titleCls + ' break-words">' + pin + esc(n.title || "(tanpa judul)") + "</h3>" +
             body +
             '<div class="flex flex-wrap items-center gap-2 mt-2">' + catChip + " " + dueChip + " " + tags + "</div>" +
           "</div>" +
           '<div class="flex flex-col items-end gap-1 shrink-0">' +
-            '<button data-action="done" data-id="' + n.id + '" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + (n.done ? "↩︎ Batalkan" : "✓ Selesai") + "</button>" +
+            '<button data-action="done" data-id="' + n.id + '" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + (n.done ? DailyIcon("arrow-back-up") + " Batalkan" : DailyIcon("check") + " Selesai") + "</button>" +
             '<div class="flex gap-1">' +
-              '<button data-action="pin" data-id="' + n.id + '" title="Sematkan" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + (n.pinned ? "Lepas" : "📌") + "</button>" +
-              '<button data-action="edit" data-id="' + n.id + '" title="Edit" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">✏️</button>' +
-              '<button data-action="del" data-id="' + n.id + '" title="Hapus" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">🗑️</button>' +
+              '<button data-action="pin" data-id="' + n.id + '" title="' + (n.pinned ? "Lepas sematan" : "Sematkan") + '" aria-label="' + (n.pinned ? "Lepas sematan" : "Sematkan") + '" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + DailyIcon(n.pinned ? "pinned-off" : "pin") + "</button>" +
+              '<button data-action="edit" data-id="' + n.id + '" title="Edit" aria-label="Edit catatan" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + DailyIcon("pencil") + '</button>' +
+              '<button data-action="del" data-id="' + n.id + '" title="Hapus" aria-label="Hapus catatan" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">' + DailyIcon("trash") + '</button>' +
             "</div>" +
           "</div>" +
         "</div>" +
@@ -137,12 +146,12 @@
     sel.value = current;
   }
 
-  function chipBtn(id, label, emoji, count, active) {
+  function chipBtn(id, label, glyph, count, active) {
     var cls = active
-      ? "bg-blue-600 text-white border-blue-600"
+      ? "bg-ps text-ps-on border-ps"
       : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50";
-    return '<button type="button" data-cat="' + id + '" class="text-sm px-3 py-1 rounded-full border ' + cls + '">' +
-      (emoji ? emoji + " " : "") + esc(label) + ' <span class="opacity-70">(' + count + ")</span></button>";
+    return '<button type="button" data-cat="' + id + '" aria-pressed="' + active + '" class="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ' + cls + '">' +
+      (glyph ? DailyIcon(glyph) + " " : "") + esc(label) + " (" + count + ")</button>";
   }
 
   function renderCatFilter() {
@@ -152,7 +161,7 @@
     allNotes.forEach(function (n) { var id = noteCat(n); counts[id] = (counts[id] || 0) + 1; });
     var html = chipBtn("", "Semua", "", allNotes.length, catFilter === "");
     CATS.forEach(function (c) {
-      html += chipBtn(c.id, c.label, c.emoji, counts[c.id] || 0, catFilter === c.id);
+      html += chipBtn(c.id, c.label, c.icon, counts[c.id] || 0, catFilter === c.id);
     });
     el.innerHTML = html;
   }
@@ -172,16 +181,39 @@
       return true;
     });
     $("notesList").innerHTML = list.map(cardHtml).join("");
-    $("emptyState").classList.toggle("hidden", list.length > 0);
+    var empty = $("emptyState");
+    empty.classList.toggle("hidden", list.length > 0);
+    if (!list.length) {
+      empty.innerHTML = allNotes.length
+        ? "Tidak ada catatan untuk filter ini."
+        : "Belum ada catatan. Klik <b>Tambah Catatan</b> untuk membuat yang pertama.";
+    }
+  }
+
+  var loaded = false;
+
+  function showListMessage(html) {
+    $("emptyState").classList.add("hidden");
+    $("notesList").innerHTML =
+      '<div class="lg:col-span-2 bg-white rounded-lg p-6 text-center text-slate-600 border border-slate-200" role="status">' + html + "</div>";
   }
 
   function loadNotes() {
-    return fetch("/api/notes").then(function (r) { return r.json(); }).then(function (data) {
+    if (!loaded) showListMessage("Memuat catatan…");
+    return fetch("/api/notes").then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (data) {
+      loaded = true;
       allNotes = data.notes || [];
       updateCounts(data.counts);
       populateTags();
       renderCatFilter();
       render();
+    }).catch(function () {
+      if (loaded) { toast("Gagal memuat ulang catatan. Coba muat ulang halaman."); return; }
+      showListMessage('Gagal memuat catatan. Pastikan Daily App masih berjalan, lalu ' +
+        '<button type="button" data-retry class="underline text-blue-700">coba lagi</button>.');
     });
   }
 
@@ -277,10 +309,15 @@
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
-    }).then(function () { if (msg) toast(msg); return loadNotes(); });
+    }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      if (msg) toast(msg);
+      return loadNotes();
+    }).catch(function () { toast("Gagal memperbarui catatan. Coba lagi."); });
   }
 
   function onListClick(e) {
+    if (e.target.closest("[data-retry]")) { loadNotes(); return; }
     var btn = e.target.closest("button[data-action]");
     if (!btn) return;
     var id = btn.getAttribute("data-id");
@@ -290,9 +327,19 @@
     if (action === "done") patch(id, { done: !note.done }, note.done ? "Dibuka kembali" : "Ditandai selesai");
     else if (action === "pin") patch(id, { pinned: !note.pinned });
     else if (action === "edit") startEdit(note);
+    else if (action === "toggle") {
+      expanded[id] = !expanded[id];
+      render();
+      var again = document.querySelector('#notesList button[data-action="toggle"][data-id="' + id + '"]');
+      if (again) again.focus();
+    }
     else if (action === "del") {
       if (confirm("Hapus catatan ini?")) {
-        fetch("/api/notes/" + id, { method: "DELETE" }).then(function () { toast("Catatan dihapus"); loadNotes(); });
+        fetch("/api/notes/" + id, { method: "DELETE" }).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          toast("Catatan dihapus");
+          loadNotes();
+        }).catch(function () { toast("Gagal menghapus catatan. Coba lagi."); });
       }
     }
   }

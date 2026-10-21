@@ -3,12 +3,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from app import config, notes_store
+from app.templating import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(config.TEMPLATE_DIR))
 
 
 @router.get("/notes", response_class=HTMLResponse)

@@ -13,6 +13,8 @@ class PdfToWordTool(Tool):
     name = "PDF ke Word"
     description = "Konversi dokumen PDF menjadi file Word (.docx) yang bisa diedit."
     icon = "📄"
+    glyph = "file-type-doc"
+    hue = "#3b6fd9"
     accepted_extensions = [".pdf"]
     supports_batch = True
     options = []

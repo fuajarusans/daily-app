@@ -7,37 +7,70 @@
     <link rel="icon" href="/static/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" href="/static/img/emblem.png">
     <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind disimpan lokal agar tampilan tetap utuh tanpa internet. -->
+    <script src="/static/vendor/tailwindcss-3.4.17.js"></script>
+    <script src="/static/theme.js"></script>
+    <link rel="stylesheet" href="/static/console.css">
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen">
-    <header class="bg-white border-b border-slate-200">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-            <a href="/" class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <img src="/static/img/emblem.png" alt="" class="h-9 w-9">
+{% set path = request.url.path %}
+{% set section = 'notes' if path.startswith('/notes') else ('invoice' if path.startswith('/invoice') else 'home') %}
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans antialiased">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-ps text-ps-on px-3 py-2 rounded-md">Lewati ke konten</a>
+    <header class="border-b border-slate-200/70">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <a href="/" class="flex items-center gap-2 whitespace-nowrap text-lg font-semibold text-slate-900">
+                <img src="/static/img/emblem.png" alt="" class="h-8 w-8">
                 <span>Daily App</span>
             </a>
-            <span class="hidden sm:inline text-sm text-slate-400">— kumpulan tools harian lokal</span>
-            <nav class="ml-auto flex items-center gap-2">
-                <button id="enableNotif" type="button"
-                        class="hidden text-sm px-2 py-1 rounded border border-slate-300 text-slate-600 hover:bg-slate-50"
-                        title="Aktifkan notifikasi pengingat di browser ini">🔔 Aktifkan pengingat</button>
-                <a href="/notes"
-                   class="relative inline-flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-blue-600 px-2 py-1 rounded hover:bg-slate-50">
-                    📝 Catatan
-                    <span class="js-reminder-badge hidden min-w-[18px] text-center text-[11px] font-bold text-white bg-red-500 rounded-full px-1.5 py-0.5">0</span>
+            <nav aria-label="Menu utama" class="flex items-center gap-1 text-sm">
+                {% for key, href, label, glyph in [('home', '/', 'Beranda', 'home'), ('notes', '/notes', 'Catatan', 'notes'), ('invoice', '/invoice', 'Invoice', 'file-invoice')] %}
+                <a href="{{ href }}" {% if section == key %}aria-current="page"{% endif %}
+                   class="relative inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md
+                          {{ 'text-slate-900 font-semibold' if section == key else 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' }}">
+                    {{ icon(glyph) }}<span>{{ label }}</span>
+                    {% if key == 'notes' %}<span class="js-reminder-badge hidden min-w-[18px] text-center text-[11px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5">0</span>{% endif %}
+                    {% if section == key %}<span class="absolute left-3 right-3 -bottom-[13px] h-0.5 rounded-full bg-ps" aria-hidden="true"></span>{% endif %}
                 </a>
+                {% endfor %}
             </nav>
+            <div class="ml-auto flex items-center gap-2 text-sm">
+                <button id="enableNotif" type="button"
+                        class="hidden inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+                        title="Aktifkan notifikasi pengingat di perangkat ini">{{ icon('bell') }}<span class="hidden sm:inline">Aktifkan pengingat</span><span class="sm:hidden">Pengingat</span></button>
+                <button id="soundToggle" type="button" aria-pressed="false" aria-label="Nyalakan suara navigasi"
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+                    <svg class="ico" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-sprite.svg#volume-off"></use></svg>
+                </button>
+                <time id="clock" class="tabular-nums text-slate-700 font-medium w-12 text-right"></time>
+            </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-8">
+    <main id="main" class="max-w-6xl mx-auto px-4 py-8">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="max-w-5xl mx-auto px-4 py-8 text-center text-xs text-slate-400">
-        Berjalan lokal di komputer Anda · File hasil dibersihkan otomatis
+    <footer class="max-w-6xl mx-auto px-4 pb-8 pt-2 text-xs text-slate-500 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <span>Berjalan lokal di komputer ini · File hasil dihapus otomatis {{ file_ttl_hours }} jam setelah dibuat · v{{ app_version }}</span>
+            <span class="hidden md:flex items-center gap-3" aria-hidden="true">
+                {% block hints %}<span><span class="key">Esc</span> Beranda</span>{% endblock %}
+            </span>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/70 pt-3">
+            <span class="flex items-center gap-2">
+                <img src="/static/img/emblem.png" alt="" class="h-5 w-5">
+                <span>Hak cipta © 2026 <strong class="font-semibold text-slate-700">Fajar Santoso</strong> ·
+                    <a href="https://github.com/fuajarusans/daily-app/blob/main/LICENSE" target="_blank" rel="noopener" class="underline hover:text-slate-900">Lisensi AGPL-3.0</a> ·
+                    <a href="https://github.com/fuajarusans/daily-app" target="_blank" rel="noopener" class="underline hover:text-slate-900">Kode sumber</a></span>
+            </span>
+            <a href="https://www.instagram.com/fajar_snts" target="_blank" rel="noopener" class="ig-link" aria-label="Instagram Fajar Santoso (@fajar_snts)">
+                {{ icon('brand-instagram') }}<span>@fajar_snts</span>
+            </a>
+        </div>
     </footer>
 
+    <script src="/static/console.js"></script>
     <script src="/static/reminders.js"></script>
     {% block scripts %}{% endblock %}
 </body>

@@ -33,6 +33,8 @@ class Tool:
     name: str = ""                     # Nama tampil, mis. "PDF ke Word"
     description: str = ""              # Deskripsi singkat untuk kartu dashboard
     icon: str = "🛠️"                   # Emoji ikon
+    glyph: str = "file-text"           # Nama ikon di static/vendor/tabler-sprite.svg (tile Beranda)
+    hue: str = "#0070d1"               # Warna tile & latar sorotan Beranda saat difokus
 
     # URL halaman kustom. Kosongkan untuk memakai form generik /tool/<id>.
     # Isi bila tool butuh UI sendiri (mis. kanvas) — kartu dashboard akan
@@ -89,6 +91,8 @@ class Tool:
             "name": self.name,
             "description": self.description,
             "icon": self.icon,
+            "glyph": self.glyph,
+            "hue": self.hue,
             "custom_url": self.custom_url,
             "accepted_extensions": self.accepted_extensions,
             "supports_batch": self.supports_batch,

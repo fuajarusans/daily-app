@@ -1,311 +1,113 @@
-# 🧰 Daily App
+<p align="center">
+  <img src="static/img/emblem.png" alt="" width="96">
+</p>
 
-Aplikasi utilitas internal yang berjalan **lokal** di komputer Anda. Berupa dashboard
-web (diakses lewat browser di `http://localhost:8000`) berisi kumpulan *tools* harian
-untuk konversi dan manipulasi file.
+<h1 align="center">Daily App</h1>
 
-Tidak butuh internet untuk operasi sehari-hari (kecuali tool "Hapus Background" dan engine
-**LaMa** pada "Hapus Watermark" — masing-masing mengunduh model sekali saat pemakaian
-pertama), tidak di-deploy ke server.
+<p align="center">
+  Kumpulan alat kerja harian untuk Windows: PDF, gambar, invoice, dan catatan.<br>
+  Gratis, dan semua file diproses di laptop Anda sendiri.
+</p>
 
-> 📘 Mau langsung pakai? Lihat **[PANDUAN.md](PANDUAN.md)** untuk cara pemakaian
-> harian dan cara update.
+<p align="center">
+  <!-- Ganti LINK_GOOGLE_DRIVE dengan link berbagi folder/file installer di Google Drive. -->
+  <a href="LINK_GOOGLE_DRIVE"><b>Unduh Daily App 1.2.1 untuk Windows</b></a>
+  ·
+  <a href="#cara-memasang">Cara memasang</a>
+  ·
+  <a href="https://www.instagram.com/fajar_snts">Instagram @fajar_snts</a>
+</p>
 
----
+![Beranda Daily App](docs/screenshots/beranda.png)
 
-## ✨ Daftar Tools
+## Isinya
 
-| Tool | Fungsi | Library | Catatan |
-|------|--------|---------|---------|
-| 📄 PDF ke Word | `.pdf` → `.docx` | pdf2docx | — |
-| 🗜️ Compress PDF | Perkecil ukuran PDF | pikepdf / Ghostscript | Metode "Maksimal" perlu Ghostscript |
-| 📑 Office ke PDF | `.docx/.xlsx/.pptx` → `.pdf` | LibreOffice | **Wajib** LibreOffice terpasang |
-| 🖼️ Resize / Compress Gambar | Ubah ukuran, kualitas, atau target ukuran file (KB) | Pillow | Mendukung batch; mode target: PNG→JPG |
-| 🔄 Convert Format Gambar | PNG/JPG/WEBP/HEIC/… | Pillow + pillow-heif | Mendukung batch |
-| ✂️ Hapus Background Gambar | Hapus latar otomatis (AI) | rembg | Unduh model ~170MB sekali (perlu internet) |
-| 🧽 Hapus Watermark | Tandai area di kanvas → hapus (inpainting); engine OpenCV / LaMa (AI) | opencv-python-headless · onnxruntime | Halaman kanvas khusus (`/watermark`); LaMa unduh model ~208MB sekali |
-| 🔳 Generate QR Code | Teks/URL → PNG | qrcode[pil] | — |
+Pilih alat dari Beranda dengan mouse, atau tombol panah lalu **Enter**. Tombol **Esc** kembali
+ke Beranda.
 
----
+| Alat | Fungsi |
+|---|---|
+| PDF ke Word | Ubah `.pdf` menjadi `.docx` yang bisa diedit |
+| Office ke PDF | Word, Excel, PowerPoint menjadi PDF (perlu LibreOffice) |
+| Kompres PDF | Perkecil ukuran PDF; metode Maksimal perlu Ghostscript |
+| Ubah ukuran gambar | Skala, lebar/tinggi, atau target ukuran file (KB) |
+| Konversi gambar | PNG, JPG, JFIF, WEBP, HEIC, BMP, TIFF |
+| Hapus background | Latar belakang foto dihapus otomatis (AI) |
+| Hapus watermark | Sapukan kuas di atas watermark, lalu hapus (OpenCV atau LaMa AI) |
+| QR code | Teks atau URL menjadi gambar QR |
+| Catatan & pengingat | Catatan, tugas, tenggat, dan pengingat jatuh tempo |
+| Invoice | Invoice PDF untuk beberapa brand: 10 desain, nomor otomatis, klien tersimpan, PPN & diskon, terbilang |
 
-## 📝 Catatan & Pengingat
+Banyak alat menerima beberapa file sekaligus; hasilnya diunduh sebagai satu `.zip`.
 
-Selain tools pengolah file, ada fitur **Catatan & Pengingat** (menu **📝 Catatan** di
-header atau kartu di dashboard) untuk to-do, tenggat tugas, dan **pengingat masa berlaku
-dokumen**.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/catatan.png" alt="Catatan dengan pengingat jatuh tempo"></td>
+    <td width="50%"><img src="docs/screenshots/invoice.png" alt="Daftar invoice dengan status lunas dan belum lunas"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/desain-invoice.png" alt="Pilihan 10 desain invoice"></td>
+    <td><img src="docs/screenshots/pdf-invoice.png" alt="Contoh PDF invoice desain Modern"></td>
+  </tr>
+</table>
 
-- Tiap catatan: judul, isi, **kategori** (Umum/Tugas/Dokumen/Klien/Jadwal/Ide), **tag**,
-  **pin**, **status selesai**, dan **tanggal jatuh tempo** + *"ingatkan sejak H-…"* (mis.
-  H-30 untuk dokumen). Saring cepat lewat **chip kategori** di atas daftar.
-- Sorot warna otomatis: **merah** (lewat tempo), **oranye** (hari ini), **kuning** (akan datang).
-- **Lencana** jumlah jatuh tempo muncul di header semua halaman.
-- **Notifikasi browser**: klik **🔔 Aktifkan pengingat** sekali untuk memberi izin; pop-up
-  muncul untuk catatan lewat tempo / jatuh tempo hari ini selama aplikasi terbuka
-  (lokal, tanpa internet, tanpa dependency tambahan).
+<sub>Tangkapan layar memakai data contoh.</sub>
 
-Data tersimpan permanen di **`data/notes.json`** (tidak ikut auto-cleanup). Daftar
-**kategori** diatur terpusat di `app/config.py` (`NOTE_CATEGORIES`) — tambah/ubah di situ,
-dropdown & chip filter otomatis menyesuaikan. Fitur ini adalah komponen tersendiri
-(`app/notes_store.py` + `app/notes_routes.py`), **bukan** sebuah `Tool` di folder `tools/`
-— sebab tools bersifat *stateless* (file masuk → keluar), sedangkan catatan harus
-tersimpan permanen.
+## Cara memasang
 
----
+1. Unduh `DailyApp-Setup-1.2.1.exe` dari link di atas.
+2. Jalankan. Bila muncul layar **"Windows protected your PC"**, klik **More info**, lalu
+   **Run anyway**. Peringatan ini muncul karena aplikasi belum ditandatangani sertifikat
+   berbayar.
+3. Ikuti langkah instalasi (tidak perlu hak admin), lalu buka **Daily App** dari Desktop atau
+   Start Menu.
 
-## 📋 Prasyarat
+**Persyaratan:** Windows 10/11 64-bit. Daily App tampil sebagai jendela aplikasi memakai
+Microsoft Edge WebView2 (sudah ada di Windows 11 dan sebagian besar Windows 10).
 
-- **Python 3.10+** ([unduh](https://www.python.org/downloads/) — saat instal di Windows,
-  centang *"Add Python to PATH"*).
-- (Opsional, untuk tool tertentu) **LibreOffice** dan **Ghostscript** — lihat
-  [Dependency Eksternal](#-dependency-eksternal).
+**Memeriksa keaslian file (opsional):** SHA-256 `DailyApp-Setup-1.2.1.exe`:
 
----
+```
+ab8ff60f61e7313b6b933472e10ffdd091c1b9ee9ca9916996252363b4217052
+```
 
-## 🚀 Cara Install
-
-1. Buka terminal (PowerShell) di folder proyek ini.
-
-2. (Disarankan) Buat virtual environment agar rapi:
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-   > Jika muncul error *execution policy* di PowerShell, jalankan sekali:
-   > `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-
-3. Install dependency Python:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-   > Catatan: `rembg` dan `pdf2docx` cukup besar; instalasi pertama bisa beberapa menit.
-
----
-
-## ▶️ Cara Menjalankan
+Cek di PowerShell:
 
 ```powershell
-python run.py
+Get-FileHash .\DailyApp-Setup-1.2.1.exe -Algorithm SHA256
 ```
 
-Server menyala di `http://localhost:8000` dan browser akan **terbuka otomatis**.
-Tekan `CTRL+C` di terminal untuk menghentikan.
+## Privasi & data
 
----
+- File yang Anda proses tidak diunggah ke server mana pun; semuanya diproses di komputer Anda.
+- Catatan, brand, klien, dan invoice tersimpan di `%LOCALAPPDATA%\DailyApp` dan tidak terhapus
+  saat aplikasi diperbarui atau di-uninstall. Untuk backup, salin folder `data` di dalamnya.
+- File hasil di dalam aplikasi dihapus otomatis 1 jam setelah dibuat.
+- Internet hanya dibutuhkan sekali, saat **Hapus Background** (~170 MB) dan **Hapus Watermark
+  engine LaMa** (~208 MB) pertama kali mengunduh model AI.
 
-## 🧪 Cara Menguji (langkah demi langkah)
+## Bila ada masalah
 
-1. Jalankan `python run.py`, dashboard terbuka.
-2. **Generate QR Code** (paling cepat, tanpa dependency eksternal): buka tool, isi teks
-   `https://contoh.com`, klik **Proses**, lalu **Unduh hasil** → harus berupa PNG QR.
-3. **Resize Gambar**: buka tool, pilih satu gambar, set skala `50%`, **Proses** → unduh.
-   Atau isi **Target ukuran file (KB)** (mis. `200`) untuk dikompres otomatis ke ukuran itu.
-4. **PDF ke Word**: pilih satu `.pdf`, **Proses** → unduh `.docx`.
-5. **Batch**: pada tool gambar, pilih beberapa file sekaligus → hasil otomatis berupa
-   `.zip`.
-6. **Office ke PDF**: bila LibreOffice belum terpasang, tool menampilkan badge
-   *"perlu setup"* dan pesan cara instalasi (perilaku yang diharapkan).
-7. **Hapus Watermark**: klik kartunya (membuka halaman kanvas), pilih gambar, **sapukan
-   kuas** menutupi watermark, lalu **Proses** → muncul pratinjau *sebelum/sesudah* + unduh.
-   Coba juga **Engine → LaMa (AI)** untuk hasil lebih halus (unduh model ~208MB sekali).
+- **Office ke PDF** atau **Kompres PDF Maksimal** berlabel *perlu setup*: pasang
+  [LibreOffice](https://www.libreoffice.org/download/) atau
+  [Ghostscript](https://ghostscript.com/releases/gsdnld.html) (keduanya gratis).
+- **Proses pertama gagal lalu berhasil saat diulang:** antivirus (mis. Avast/AVG) sedang
+  memindai berkas aplikasi yang baru dipasang. Klik **Proses** sekali lagi.
+- **Aplikasi tidak mau terbuka:** kirim berkas log dari `%LOCALAPPDATA%\DailyApp\logs` lewat
+  DM Instagram [@fajar_snts](https://www.instagram.com/fajar_snts).
 
----
+## Untuk pengembang
 
-## 🔧 Dependency Eksternal
+Menjalankan dari kode sumber, menambah alat baru, dan membuat installer:
+[docs/PENGEMBANG.md](docs/PENGEMBANG.md). Arah desain tampilan: [DESIGN.md](DESIGN.md).
 
-Dependency ini **bukan** paket pip; instal manual bila ingin memakai tool terkait.
+## Hak cipta & lisensi
 
-### LibreOffice — wajib untuk "Office ke PDF"
-- **Windows**: unduh di <https://www.libreoffice.org/download/>, instal seperti biasa.
-  Aplikasi akan otomatis mencari `soffice.exe` di lokasi instalasi umum
-  (`C:\Program Files\LibreOffice\program\`).
-- **macOS**: instal LibreOffice.app ke folder Applications.
-- **Linux**: `sudo apt install libreoffice` (atau paket distro Anda).
+Hak cipta © 2026 **Fajar Santoso** · [Instagram @fajar_snts](https://www.instagram.com/fajar_snts)
 
-Jika setelah instal masih tidak terdeteksi, pastikan `soffice` ada di PATH, lalu jalankan
-ulang `python run.py`.
+Daily App adalah perangkat lunak bebas dengan lisensi **GNU AGPL-3.0** ([LICENSE](LICENSE)).
+Anda boleh memakai, membagikan, dan mengubahnya; bila membagikan ulang, sertakan pemberitahuan
+hak cipta dan kode sumbernya. Daftar komponen pihak ketiga ada di [NOTICE.md](NOTICE.md).
 
-### Ghostscript — opsional untuk "Compress PDF" metode Maksimal
-Metode **Cepat** (pikepdf) selalu tersedia tanpa instalasi tambahan. Untuk hasil
-kompresi lebih agresif (terutama PDF berisi banyak gambar), gunakan metode **Maksimal**
-yang memerlukan Ghostscript:
-- **Windows**: unduh di <https://ghostscript.com/releases/gsdnld.html> (pilih versi 64-bit).
-  Aplikasi mencari `gswin64c`.
-- **macOS**: `brew install ghostscript`
-- **Linux**: `sudo apt install ghostscript`
-
----
-
-## 📁 Struktur Folder
-
-```
-Daily App/
-├── run.py                  # Entry point: start server + buka browser
-├── requirements.txt        # Dependency Python
-├── README.md
-│
-├── app/                    # Kode inti aplikasi
-│   ├── main.py             # FastAPI: dashboard, halaman tool, proses, download
-│   ├── registry.py         # ★ Tool registry + kontrak dasar `Tool`
-│   ├── config.py           # Konfigurasi (port, folder, TTL cleanup)
-│   ├── cleanup.py          # Pembersihan file sementara otomatis
-│   ├── utils.py            # Helper (simpan upload, zip, deteksi dependency)
-│   ├── notes_store.py      # ★ Penyimpanan Catatan & Pengingat (data/notes.json)
-│   ├── notes_routes.py     # ★ Route halaman + API Catatan & Pengingat
-│   └── watermark_routes.py # ★ Route halaman kustom Hapus Watermark (kanvas)
-│
-├── tools/                  # ★ Satu file = satu tool (auto-terdaftar)
-│   ├── __init__.py         # Auto-import semua modul di folder ini
-│   ├── pdf_to_word.py
-│   ├── compress_pdf.py
-│   ├── office_to_pdf.py
-│   ├── image_resize.py
-│   ├── image_convert.py
-│   ├── remove_background.py
-│   ├── generate_qr.py
-│   ├── watermark_remove.py # Halaman kustom (custom_url) → /watermark
-│   └── _lama.py            # Engine LaMa (ONNX) — bukan Tool (diawali _ = tak auto-import)
-│
-├── templates/              # HTML (Jinja2 + Tailwind via CDN)
-│   ├── base.html
-│   ├── dashboard.html      # Daftar tool — terisi OTOMATIS dari registry
-│   ├── tool.html           # Halaman generik 1 tool (form dari metadata tool)
-│   └── watermark.html      # Halaman kustom Hapus Watermark (editor kanvas)
-│
-├── static/
-│   ├── app.js              # JS vanilla: upload, status, download
-│   ├── watermark.js        # JS editor kanvas Hapus Watermark
-│   ├── notes.js            # JS Catatan & Pengingat (CRUD + render)
-│   ├── reminders.js        # JS lencana + notifikasi pengingat (semua halaman)
-│   └── img/                # Logo & ikon (emblem.png, logo.png, favicon, …)
-│
-├── storage/                # File sementara (auto-cleanup setiap jam)
-│   ├── uploads/
-│   └── outputs/
-│
-├── data/                   # Data PERMANEN (TIDAK dibersihkan)
-│   └── notes.json          # Catatan & pengingat
-│
-└── models/                 # Model AI diunduh sekali (lama_fp32.onnx ~208MB) — gitignored
-```
-
----
-
-## ➕ Cara Menambah Tool Baru
-
-Arsitektur ini **modular berbasis registry**. Untuk menambah tool, Anda **cukup membuat
-satu file** di folder `tools/` — dashboard akan otomatis menampilkannya. Tidak perlu
-menyentuh kode dashboard, route, atau template.
-
-### Langkah
-
-1. Buat file baru, mis. `tools/contoh_uppercase.py`.
-2. Definisikan subclass `Tool`, isi metadata, dan method `process()`.
-3. Beri decorator `@register_tool`.
-4. Jalankan ulang `python run.py`. Selesai.
-
-### Contoh lengkap (template siap salin)
-
-```python
-"""Tool contoh: ubah isi file teks menjadi HURUF BESAR."""
-from pathlib import Path
-
-from app.registry import Tool, ToolError, register_tool
-
-
-@register_tool
-class UppercaseTool(Tool):
-    id = "uppercase-text"                 # ID unik, URL-friendly
-    name = "Teks ke HURUF BESAR"          # Nama tampil di dashboard
-    description = "Ubah isi file .txt menjadi huruf kapital semua."
-    icon = "🔠"                            # Emoji ikon
-    accepted_extensions = [".txt"]        # [] berarti bebas / tanpa file
-    supports_batch = True                 # True = boleh banyak file → hasil .zip
-    requires_file = True                  # False bila tidak butuh upload (mis. QR)
-
-    # Opsi form tambahan (deklaratif). Kosongkan bila tidak perlu.
-    options = [
-        {
-            "name": "suffix",            # nama field → key di dict `options`
-            "label": "Akhiran nama file",
-            "type": "text",              # text | number | range | select | textarea | checkbox
-            "default": "_UPPER",
-        },
-    ]
-
-    # (Opsional) cek dependency eksternal. Kembalikan pesan bila belum siap.
-    def check_dependencies(self):
-        return None
-
-    def process(self, input_paths, options, output_dir):
-        """input_paths: list[Path] file upload
-           options: dict nilai dari form
-           output_dir: Path folder tujuan hasil
-           return: list[Path] file hasil (>1 file → otomatis dibungkus .zip)"""
-        suffix = options.get("suffix") or "_UPPER"
-        results = []
-        for src in input_paths:
-            try:
-                teks = src.read_text(encoding="utf-8", errors="ignore")
-            except Exception as e:
-                raise ToolError(f"Gagal membaca '{src.name}': {e}")
-            out = output_dir / f"{src.stem}{suffix}.txt"
-            out.write_text(teks.upper(), encoding="utf-8")
-            results.append(out)
-        return results
-```
-
-### Skema `options` yang didukung
-
-| `type` | Render UI | Tipe nilai diterima `process` |
-|--------|-----------|-------------------------------|
-| `text` | input teks | str |
-| `number` | input angka | int/float |
-| `range` | slider | int/float |
-| `select` | dropdown (butuh `choices`) | str |
-| `textarea` | kotak teks multi-baris | str |
-| `checkbox` | centang | bool |
-
-Untuk `select`, isi `choices` sebagai list `{"value": "...", "label": "..."}`.
-Field umum lain: `default`, `min`, `max`, `placeholder`.
-
-### Tips
-
-- Gunakan `raise ToolError("pesan ramah")` untuk kegagalan yang pesannya **aman
-  ditampilkan ke pengguna** (format salah, konversi gagal, dependency hilang).
-- Error lain yang tidak terduga tetap ditangkap framework dan ditampilkan dengan aman.
-- File di-`tools/` yang namanya diawali `_` (mis. `_helpers.py`) **tidak** di-auto-import,
-  jadi cocok untuk modul bantu bersama.
-
-### Tool dengan halaman kustom (UI sendiri)
-
-Sebagian tool butuh antarmuka di luar form standar (mis. **kanvas** untuk menandai area).
-Caranya: isi atribut **`custom_url`** pada kelas tool ke URL halaman Anda, lalu sediakan
-route + template untuk URL itu. Kartu di dashboard otomatis menaut ke `custom_url` tersebut
-(bukan ke `/tool/<id>`), sementara pemrosesan tetap bisa memakai endpoint standar
-`/api/tool/<id>/process` — cukup kirim file + opsi dari halaman kustom Anda.
-
-Contoh nyata: **Hapus Watermark** — `tools/watermark_remove.py` (`custom_url = "/watermark"`)
-+ `app/watermark_routes.py` + `templates/watermark.html` + `static/watermark.js`. Halaman
-kanvas mengirim **gambar + mask** ke `/api/tool/watermark-remove/process`.
-
----
-
-## 🧹 Penyimpanan & Pembersihan
-
-- File upload & hasil disimpan sementara di `storage/`.
-- Pembersih otomatis menghapus file yang lebih tua dari **1 jam** (berjalan tiap 10 menit
-  dan saat startup). Ubah di `app/config.py` (`FILE_TTL_SECONDS`).
-- **Catatan & Pengingat** disimpan permanen di `data/notes.json` dan **tidak** pernah ikut
-  dibersihkan. Untuk backup, cukup salin berkas itu.
-
----
-
-## ❓ Troubleshooting
-
-- **Browser tidak terbuka otomatis** → buka manual `http://localhost:8000`.
-- **Port 8000 dipakai aplikasi lain** → ubah `PORT` di `app/config.py`.
-- **"Office ke PDF" gagal / badge perlu setup** → pastikan LibreOffice terpasang & tidak
-  ada file Office yang sedang dibuka aplikasi lain.
-- **"Hapus Background" lama / gagal di pemakaian pertama** → butuh internet sekali untuk
-  unduh model AI (~170MB). Setelah itu jalan offline.
-- **HEIC tidak terbaca** → pastikan `pillow-heif` terpasang (`pip install pillow-heif`).
+"PlayStation" adalah merek dagang Sony Interactive Entertainment. Daily App hanya terinspirasi
+tata letak layar berandanya dan tidak berafiliasi dengan Sony.

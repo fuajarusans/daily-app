@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from app import config
 from app.registry import get_tool
+from app.templating import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(config.TEMPLATE_DIR))
 
 
 @router.get("/watermark", response_class=HTMLResponse)

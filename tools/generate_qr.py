@@ -13,6 +13,8 @@ class GenerateQrTool(Tool):
     name = "Generate QR Code"
     description = "Buat QR code dari teks atau URL, hasil berupa gambar PNG."
     icon = "🔳"
+    glyph = "qrcode"
+    hue = "#2bb3a3"
     accepted_extensions = []
     supports_batch = False
     requires_file = False  # tool ini tidak butuh upload file

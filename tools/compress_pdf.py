@@ -30,6 +30,8 @@ class CompressPdfTool(Tool):
     name = "Compress PDF"
     description = "Perkecil ukuran file PDF. Metode 'Maksimal' butuh Ghostscript."
     icon = "🗜️"
+    glyph = "file-zip"
+    hue = "#d64545"
     accepted_extensions = [".pdf"]
     supports_batch = True
     options = [
@@ -94,7 +96,7 @@ class CompressPdfTool(Tool):
             str(src),
         ]
         try:
-            subprocess.run(cmd, check=True, capture_output=True, timeout=300)
+            subprocess.run(cmd, check=True, capture_output=True, timeout=300, **utils.no_window())
         except subprocess.CalledProcessError as e:
             msg = e.stderr.decode(errors="ignore") if e.stderr else str(e)
             raise ToolError(f"Ghostscript gagal pada '{src.name}': {msg}")

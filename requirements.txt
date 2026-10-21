@@ -14,6 +14,7 @@ opencv-python-headless  # Hapus watermark (inpainting cv2.inpaint); -headless = 
 # tanpa torch. Model lama_fp32.onnx (~208MB) diunduh otomatis ke models/ saat pertama kali dipakai.
 rembg[cpu]              # Hapus background gambar (extra [cpu] menyertakan backend onnxruntime; model AI diunduh saat pertama kali)
 qrcode[pil]             # Generate QR code
+fpdf2                   # Invoice Generator: pembuat PDF (murni Python, tanpa dependency eksternal)
 
 # Catatan dependency EKSTERNAL (bukan pip, instal manual):
 #   - LibreOffice  -> wajib untuk tool "Office to PDF"

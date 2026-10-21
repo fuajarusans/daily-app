@@ -1,7 +1,7 @@
 # 📘 Panduan Pemakaian & Update — Daily App
 
 Panduan praktis sehari-hari. Untuk dokumentasi teknis lengkap (instalasi awal,
-arsitektur, cara membuat tool baru), lihat [README.md](README.md).
+arsitektur, cara membuat tool baru), lihat [README.md](PENGEMBANG.md).
 
 ---
 
@@ -121,6 +121,56 @@ aplikasi terbuka, pop-up muncul untuk catatan yang lewat tempo / jatuh tempo har
 
 ---
 
+## 🧾 Invoice Generator
+
+Buka lewat menu **🧾 Invoice** di kanan atas, atau kartu **Invoice Generator** di dashboard.
+
+**1. Siapkan brand (tab Brand):** klik **➕ Tambah Brand** untuk setiap brand/usaha yang
+Anda kelola. Isi nama, alamat, telepon/email, NPWP (opsional), **logo** (PNG transparan
+paling bagus), dan **rekening bank** (boleh lebih dari satu). Atur juga **prefix nomor**
+(harus beda tiap brand, mis. `BSY`, `KRT`), jatuh tempo default (hari), tarif PPN default,
+catatan default, serta **desain default** + warna aksen. Centang **⭐ Jadikan brand default**
+untuk brand yang paling sering dipakai. Klik **Contoh PDF** di bawah tiap desain untuk
+melihat hasil asli dengan data brand itu. Lalu **💾 Simpan brand**.
+
+Di daftar brand: **🧾 Buat invoice** langsung membuat invoice untuk brand itu, **✏️ Edit**
+mengubah data/logo, **⭐ Jadikan default** memindahkan brand default. Brand yang masih punya
+invoice tidak bisa dihapus. Mengubah data brand (alamat, rekening, logo) **ikut mengubah PDF
+invoice lama** brand tersebut.
+
+**2. Buat invoice (tab Invoice → ➕ Buat Invoice):**
+- **Brand penerbit** dipilih di bagian paling atas (default = brand ⭐). Saat brand diganti,
+  nomor, desain, warna, PPN, dan catatan default ikut menyesuaikan brand tersebut.
+- **Nomor** terisi otomatis berformat `001/INV/X/2026` (urut/prefix/bulan romawi/tahun;
+  urutan **terpisah tiap brand** dan **reset tiap tahun**). Boleh diketik manual; tombol
+  **↻ Otomatis** mengembalikannya.
+- **Klien tersimpan** dipakai bersama — klien yang sama bisa ditagih dari brand mana pun.
+- **Klien:** pilih dari *klien tersimpan* atau ketik baru, lalu (opsional) klik
+  **💾 Simpan sebagai klien tersimpan** agar bisa dipilih lagi lain kali.
+- **Item:** deskripsi, qty, satuan, harga — jumlah, subtotal, total, dan **terbilang**
+  dihitung langsung. **Diskon** (persen / nominal) dan **PPN** bersifat opsional.
+- **Desain:** pilih salah satu dari 10 desain (Klasik, Modern, Minimalis, Spreadsheet,
+  Elegan, Korporat, Bold, Kreatif, Ringkas, Kop Surat); warna aksen bisa diubah untuk
+  desain Modern, Elegan, Korporat, Bold, dan Kreatif.
+- **👁️ Pratinjau PDF** membuka PDF di tab baru tanpa menyimpan; **💾 Simpan** menyimpannya.
+
+**3. Kelola:** di daftar invoice — **📄 PDF** (buka), **⬇️** (unduh), **✏️** edit,
+**📋** duplikat (nomor baru + tanggal hari ini), **✅** tandai lunas (PDF memuat cap
+**LUNAS**), **🗑️** hapus. Saring lewat kotak cari atau status (belum lunas / lewat jatuh
+tempo / lunas) — bila punya lebih dari satu brand, muncul juga filter **brand** (ringkasan
+"belum lunas" di kanan atas ikut filter brand). Di tab **Klien**, tombol **🧾** langsung
+membuat invoice untuk klien itu.
+
+> Semua data (brand, klien, invoice) tersimpan permanen di `data/invoices.json` dan logo
+> tiap brand di `data/invoice_assets/` — **tidak** terhapus otomatis dan **tidak** ikut ke
+> GitHub (folder `data/` di-gitignore). Untuk backup, salin folder `data/`.
+>
+> Saat pertama kali dijalankan setelah pembaruan multi-brand, profil lama otomatis menjadi
+> **brand pertama** (invoice & logo lama ikut), dan salinan data lama disimpan sebagai
+> `data/invoices.backup-<tanggal-jam>.json`.
+
+---
+
 ## 🔄 Cara Update
 
 ### A. Update library Python (dependency)
@@ -151,7 +201,7 @@ winget upgrade --id Python.Python.3.12
   perubahan **baru aktif setelah server dijalankan ulang**.
 - Menambah tool baru cukup membuat satu file di folder `tools/`; dashboard akan
   menampilkannya otomatis. Langkah & template lengkap ada di
-  [README.md](README.md#-cara-menambah-tool-baru).
+  [README.md](PENGEMBANG.md#-cara-menambah-tool-baru).
 
 ### D. Menjalankan ulang setelah update
 1. Hentikan server: **CTRL + C** di jendela PowerShell-nya.
@@ -179,4 +229,8 @@ winget upgrade --id Python.Python.3.12
 | Hasil unduhan hilang | Normal — file dibersihkan otomatis setelah 1 jam |
 | Catatan hilang? | Tidak — catatan permanen di `data/notes.json` (beda dengan file hasil tool) |
 | Pengingat/notifikasi tak muncul | Klik **🔔 Aktifkan pengingat** & izinkan di browser; notifikasi hanya tampil saat aplikasi terbuka |
+| Invoice: error `No module named 'fpdf'` | Pasang dependency baru: `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`, lalu jalankan ulang |
+| Invoice: logo tidak muncul di PDF | Unggah ulang di tab **Brand** → **✏️ Edit** brand terkait (PNG/JPG/WEBP, maks 5 MB) |
+| Invoice: "Prefix sudah dipakai brand …" | Tiap brand wajib punya prefix nomor berbeda — ganti prefix di form brand |
+| Invoice: brand tidak bisa dihapus | Brand masih punya invoice; hapus invoicenya dulu (atau biarkan brand tetap ada) |
 | `python` tidak dikenali | Gunakan `.\.venv\Scripts\python.exe`, bukan `python` |

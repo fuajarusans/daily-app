@@ -1,46 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Daily App{% endblock %}
+{% block title %}Beranda · Daily App{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-1">Tools</h1>
-<p class="text-slate-500 mb-6">Pilih salah satu tool di bawah untuk mulai memproses file.</p>
-
-<a href="/notes"
-   class="flex items-center gap-4 bg-white rounded-lg p-5 border border-slate-200 hover:border-blue-400 hover:shadow-md transition mb-6">
-    <div class="text-3xl">📝</div>
-    <div class="flex-1 min-w-0">
-        <h2 class="font-semibold text-slate-900">Catatan &amp; Pengingat</h2>
-        <p class="text-sm text-slate-500">Simpan catatan, tandai tugas, dan dapatkan pengingat jatuh tempo.</p>
-    </div>
-    <span class="js-reminder-badge hidden text-xs font-bold text-white bg-red-500 rounded-full px-2 py-1">0</span>
-</a>
-
-{% if tools|length == 0 %}
-<div class="bg-white rounded-lg p-8 text-center text-slate-500 border border-slate-200">
-    Belum ada tool terdaftar. Tambahkan file baru di folder <code>tools/</code>.
-</div>
-{% endif %}
-
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {% for tool in tools %}
-    <a href="{{ tool.custom_url or '/tool/' + tool.id }}"
-       class="block bg-white rounded-lg p-5 border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
-        <div class="flex items-start justify-between">
-            <div class="text-3xl mb-3">{{ tool.icon }}</div>
-            {% if not tool.ready %}
-            <span class="text-[10px] uppercase font-semibold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                perlu setup
-            </span>
-            {% endif %}
-        </div>
-        <h2 class="font-semibold text-slate-900 group-hover:text-blue-600">{{ tool.name }}</h2>
-        <p class="text-sm text-slate-500 mt-1">{{ tool.description }}</p>
-        {% if tool.supports_batch %}
-        <span class="inline-block mt-3 text-[10px] uppercase font-semibold bg-slate-100 text-slate-500 px-2 py-1 rounded">
-            batch
+{% set first = tiles[0] %}
+<div id="backdrop" class="backdrop" aria-hidden="true" style="--spot: {{ first.hue }}"></div>
+<!-- Sorotan: mencerminkan tile yang sedang difokus (diisi ulang oleh home.js). -->
+<section id="spotlight" aria-labelledby="spot-title" class="min-h-[11rem] flex flex-col justify-end">
+    <h1 id="spot-title" class="spotlight-title text-4xl sm:text-5xl text-slate-900">{{ first.title }}</h1>
+    <p id="spot-desc" class="mt-3 max-w-2xl text-slate-600 leading-relaxed">{{ first.desc }}</p>
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+        <a id="spot-open" href="{{ first.href }}"
+           class="btn-pill inline-flex items-center gap-2 bg-ps hover:bg-ps-hover text-ps-on font-semibold py-2.5">Buka</a>
+        <span id="spot-chips" class="flex flex-wrap gap-2">
+            {% for c in first.chips %}<span class="text-xs text-slate-600 border border-slate-300 rounded px-2 py-1">{{ c }}</span>{% endfor %}
         </span>
-        {% endif %}
+        <span id="spot-setup" class="hidden text-sm text-amber-700 inline-flex items-center gap-1.5">{{ icon('alert-triangle') }}<span></span></span>
+    </div>
+</section>
+
+<!-- Rail: panah kiri/kanan memindah fokus, Enter membuka. -->
+<nav aria-label="Alat" class="mt-6">
+    <div id="rail" class="rail">
+        {% for t in tiles %}
+        <a href="{{ t.href }}" class="tile" data-id="{{ t.id }}" data-hue="{{ t.hue }}" style="--hue: {{ t.hue }}"
+           data-title="{{ t.title }}" data-desc="{{ t.desc }}" data-chips="{{ t.chips | tojson | forceescape }}"
+           data-setup="{{ '' if t.ready else t.dep_message }}"
+           aria-label="{{ t.title }}{% if not t.ready %} (perlu setup){% endif %}">
+            <span class="tile-face">
+                {{ icon(t.glyph) }}
+                {% if t.badge %}<span class="tile-badge js-reminder-badge hidden" aria-hidden="true">0</span>{% endif %}
+                {% if not t.ready %}<span class="tile-badge" style="background:#f8d78f" title="Perlu setup" aria-hidden="true">!</span>{% endif %}
+            </span>
+            <span class="tile-label">{{ t.title }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% if tool_count == 0 %}
+    <p class="text-slate-600">Belum ada tool terdaftar. Tambahkan file baru di folder <code>tools/</code>.</p>
+    {% endif %}
+</nav>
+
+<!-- Ringkasan: hanya data nyata dari Catatan & Invoice. -->
+<section aria-label="Ringkasan" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <a href="/notes" class="block bg-white border border-slate-200 rounded-xl p-5 hover:bg-slate-50">
+        <h2 class="flex items-center gap-2 font-semibold text-slate-900">{{ icon('bell') }} Pengingat</h2>
+        <div id="sum-notes" class="mt-2 text-sm text-slate-600" role="status">Memuat pengingat…</div>
     </a>
-    {% endfor %}
-</div>
+    <a href="/invoice" class="block bg-white border border-slate-200 rounded-xl p-5 hover:bg-slate-50">
+        <h2 class="flex items-center gap-2 font-semibold text-slate-900">{{ icon('file-invoice') }} Invoice belum lunas</h2>
+        <div id="sum-invoice" class="mt-2 text-sm text-slate-600" role="status">Memuat invoice…</div>
+    </a>
+</section>
+{% endblock %}
+
+{% block hints %}<span><span class="key">←</span> <span class="key">→</span> Pilih</span><span><span class="key">Enter</span> Buka</span>{% endblock %}
+
+{% block scripts %}
+<script src="/static/home.js"></script>
 {% endblock %}
