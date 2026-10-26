@@ -5,7 +5,7 @@
   --muted: #5f5023;
   --line: color-mix(in srgb, var(--ink) 14%, transparent);
   --hover: color-mix(in srgb, var(--ink) 9%, transparent);
-  --focus: #0070d1;
+  --focus: #0070d1; /* diganti per kertas oleh sticky.js (gelap: biru terang) */
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
@@ -44,23 +44,87 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   .tb[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
 
-.body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 12px; }
+.body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 12px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
 .title, .text { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; padding: 2px 0; }
 .title { font-size: 15px; font-weight: 600; }
 .text { flex: 1; resize: none; margin-top: 2px; line-height: 1.5; }
 .title::placeholder, .text::placeholder { color: var(--muted); opacity: 1; }
 body.is-done .title { text-decoration: line-through; color: var(--muted); }
+/* Ada checklist: isi catatan setinggi teksnya (diatur sticky.js) dan seluruh badan yang bergulir. */
+.body.has-list .text { flex: none; overflow: hidden; min-height: 40px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-.foot { position: relative; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 22px 6px 10px; border-top: 1px solid var(--line); }
+/* Checklist (static/checklist.js). Warna dari --ink/--muted agar terbaca di semua kertas. */
+.cl { margin: 2px 0 4px; }
+.cl-list { list-style: none; margin: 0; padding: 0; }
+.cl-item { position: relative; display: flex; align-items: center; gap: 2px; min-height: 24px; border-radius: 4px; }
+.cl-item[data-level="1"] { margin-left: 16px; }
+.cl-item:hover, .cl-item:focus-within { background: var(--hover); }
+.cl-handle { width: 14px; height: 22px; display: grid; place-items: center; flex: none; padding: 0; border-radius: 4px; color: var(--muted);
+  font-size: 13px; cursor: grab; touch-action: none; user-select: none; opacity: 0; }
+.cl-handle:hover, .cl-handle[aria-expanded="true"] { color: var(--ink); background: var(--line); opacity: 1; }
+/* Kotak centang 16px, pusatnya 24px dari pegangan (target sentuh WCAG 2.5.8). */
+.cl-check { width: 16px; height: 16px; margin: 0 4px 0 7px; flex: none; accent-color: var(--ink); cursor: pointer; }
+.cl-text, .cl-newtext { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; padding: 1px 2px; border-radius: 3px; }
+.cl-text::placeholder, .cl-newtext::placeholder { color: var(--muted); opacity: 1; }
+.cl-item.is-done .cl-text { text-decoration: line-through; color: var(--muted); }
+.cl-prio, .cl-del { height: 22px; min-width: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; flex: none;
+  padding: 0 3px; border-radius: 4px; color: var(--muted); font-size: 11px; font-weight: 600; opacity: 0; }
+.cl-prio .cl-lbl { display: none; }
+.cl-prio:hover, .cl-del:hover { color: var(--ink); background: var(--line); }
+.cl-item:hover .cl-handle, .cl-item:focus-within .cl-handle, .cl-item:hover .cl-prio, .cl-item:focus-within .cl-prio,
+.cl-prio.has-prio, .cl-item:hover .cl-del, .cl-item:focus-within .cl-del { opacity: 1; }
+/* Layar sentuh tanpa hover: tombol baris selalu terlihat (tidak ada tombol tak kasatmata). */
+@media (hover: none) { .cl-handle, .cl-prio, .cl-del { opacity: 1; } }
+.cl-prio.prio-tinggi { background: var(--ink); color: var(--bg); }
+.cl-prio.prio-sedang { background: var(--line); color: var(--ink); }
+/* Rendah: bingkai saja, agar tetap beda dari Sedang tanpa bergantung pada warna. */
+.cl-prio.prio-rendah { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--muted); }
+.cl-new { display: flex; align-items: center; gap: 4px; padding-left: 16px; color: var(--muted); font-size: 13px; }
+.cl-newtext { border-bottom: 1px dashed var(--line); border-radius: 3px 3px 0 0; }
+.cl-more { margin-left: 16px; font-size: 12px; color: var(--muted); text-decoration: underline; }
+.cl-drop { height: 2px; margin: 1px 0; border-radius: 2px; background: var(--focus); list-style: none; }
+.cl-drop[data-level="1"] { margin-left: 16px; }
+.cl-item.cl-dragging { opacity: .4; }
+body.is-dragging-item, body.is-dragging-item * { user-select: none !important; cursor: grabbing !important; }
+/* Sticky lebar: label prioritas lengkap; sticky sempit: huruf depannya (T/S/R). */
+@media (min-width: 280px) { .cl-prio .cl-lbl { display: inline; } .cl-prio .cl-ab { display: none; } }
+.cl-menu { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; flex-direction: column; min-width: 150px; max-width: 100%; padding: 3px;
+  border: 1px solid var(--muted); border-radius: 6px; background: var(--bg); box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
+.cl-menu.up { top: auto; bottom: 100%; }
+.cl-menu button { padding: 3px 8px; border-radius: 4px; text-align: left; font-size: 12.5px; }
+.cl-menu button:hover:not([aria-disabled]) { background: var(--hover); }
+.cl-menu button[aria-disabled="true"] { color: var(--muted); cursor: default; }
+.addlist { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 6px; padding: 2px 4px; border-radius: 4px; font-size: 12px; color: var(--muted); }
+.addlist:hover { background: var(--hover); color: var(--ink); }
+.addlist[hidden] { display: none; }
+.ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+.ask[hidden] { display: none; }
+.ask button { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+.ask button:hover { background: var(--hover); }
+#askYes { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.foot { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; row-gap: 4px; min-height: 38px; padding: 6px 22px 6px 10px; border-top: 1px solid var(--line); }
 .done { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink); }
 .done:hover { background: var(--hover); }
-.due { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.due { flex: 1000 1 0; max-width: max-content; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .due[hidden] { display: none; }
 .due.overdue { background: #fde2e1; color: #8a1c17; }
 .due.today { background: #fdebc8; color: #7a4a00; }
 .due.soon { background: #fdf3c4; color: #6b5200; }
 .due.scheduled, .due.done { background: var(--hover); color: var(--muted); }
-.saved { margin-left: auto; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.prio { display: inline-flex; align-items: center; gap: 3px; flex: none; font-size: 11.5px; font-weight: 600; padding: 2px 6px; border-radius: 999px; white-space: nowrap; }
+.prio[hidden] { display: none; }
+.prio.tinggi { background: var(--ink); color: var(--bg); }
+.prio.sedang { background: var(--hover); color: var(--ink); }
+.prio.rendah { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--muted); }
+.prio .lbl { display: none; }
+@media (min-width: 280px) { .prio .lbl { display: inline; } .prio .ab { display: none; } }
+/* Status singkat (basis 0) tidak pernah membuat footer pindah baris; galat (.wrap) tampil utuh. */
+.saved { flex: 1 1 0; margin-left: auto; text-align: right; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.saved.wrap { flex: 0 1 auto; }
+#btnUndo { margin-left: auto; }
 
 /* Pegangan ubah ukuran di pojok kanan bawah (jendela tanpa bingkai tidak punya tepi resize). */
 .grip { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none;

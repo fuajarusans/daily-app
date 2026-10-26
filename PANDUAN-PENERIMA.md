@@ -36,13 +36,34 @@ installer memberi tahu dan aplikasi terbuka di browser.
 - Tutup jendela Daily App untuk keluar. Bila masih ada sticky note di desktop, Daily App
   tetap berjalan di ikon tray (pojok kanan bawah); keluar lewat menu **Keluar** di ikon itu.
 
+## Catatan
+
+- Klik **Tambah Catatan**. Selain judul dan isi, Anda bisa mengisi **Checklist** (satu item per baris;
+  awali dengan spasi untuk sub-item), **Prioritas**, **Jatuh tempo**, dan **Ulangi**.
+- **Checklist** dicentang dan diubah langsung di kartu: ketik di kolom **Tambah item** lalu Enter.
+  Di dalam item: **Enter** membuat item baru, **Tab** menjadikannya sub-item (**Shift+Tab**
+  mengembalikan), **Alt+↑/↓** memindahkan item, dan **Backspace** pada item kosong menghapusnya.
+  Dengan mouse: klik pegangan bertitik di kiri item untuk menu **Naik**, **Turun**, **Jadikan
+  sub-item**, atau **Jadikan item utama**, atau seret pegangan itu (geser ke kanan untuk menjadikan
+  sub-item). Ikon bendera di item mengatur prioritas item itu.
+- Saat semua item dicentang, Daily App menawarkan **Tandai selesai**. Pilih **Nanti** bila belum.
+- **Prioritas** (Tinggi, Sedang, Rendah) tampil sebagai bendera di kartu dan bisa difilter. Di dalam
+  status tenggat yang sama, catatan berprioritas tinggi tampil lebih dulu.
+- **Tugas berulang** (Harian, Mingguan, Bulanan): saat ditandai **Selesai**, tenggat maju ke
+  jadwal berikutnya dan centang checklist kembali kosong.
+- **Arsipkan** menyembunyikan catatan lama dari daftar, pengingat, dan Beranda. Buka lewat tombol
+  **Arsip** di atas daftar, lalu **Pulihkan** bila diperlukan lagi.
+- Setelah **Hapus**, **Arsipkan**, atau selesai pada tugas berulang, muncul tombol **Urungkan**
+  selama 8 detik (atau tekan **Ctrl+Z**).
+
 ## Sticky note di desktop
 
 - Di halaman **Catatan**, seret kartu catatan (lewat pegangan bertitik di samping judul atau area
   kosong kartu) sampai keluar dari jendela Daily App, atau klik ikon catatan di kartu. Catatan
   itu muncul sebagai sticky note di desktop.
 - Isi sticky bisa langsung diedit dan tersimpan otomatis; perubahannya ikut tampil di
-  halaman Catatan.
+  halaman Catatan. Checklist bisa dicentang dan ditambah langsung di sticky; bila catatan belum
+  punya checklist, klik **Tambah checklist** di bawah isinya.
 - Seret bilah atas sticky untuk memindahkan, dan pojok kanan bawah untuk mengubah ukuran.
   Tombol di bilah atas: **Selalu di atas**, **Warna**, **Buka di Daily App**, dan **Lepas dari
   desktop** (ikon X).

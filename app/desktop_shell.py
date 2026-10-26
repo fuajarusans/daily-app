@@ -210,8 +210,11 @@ class Shell:
             return list(self._stickies)
 
     def open_sticky(self, note_id: str, follow: bool = False, prestart: bool = False):
-        if notes_store.get_note(note_id) is None:
+        note = notes_store.get_note(note_id)
+        if note is None:
             return {"ok": False, "error": "Catatan tidak ditemukan."}
+        if note.get("archived"):
+            return {"ok": False, "error": "Catatan ini diarsipkan. Pulihkan dulu untuk menempelnya."}
         with self._create_lock:
             return self._open_sticky_locked(note_id, follow, prestart)
 
@@ -305,11 +308,21 @@ class Shell:
         threading.Thread(target=follow, name="sticky-follow", daemon=True).start()
 
     def close_sticky(self, note_id: str) -> None:
-        sticky_store.update(note_id, open=False)
+        # Catatan yang sudah dihapus tidak butuh status sticky (Urungkan memulihkannya sendiri).
+        if notes_store.get_note(note_id) is not None:
+            try:
+                sticky_store.update(note_id, open=False)
+            except OSError:
+                # stickies.json terkunci (antivirus/sinkronisasi): jendela tetap ditutup; sticky
+                # mungkin muncul lagi saat start, lebih baik daripada tidak bisa ditutup.
+                log.exception("Gagal menyimpan status sticky %s", note_id)
         with self._lock:
             win = self._stickies.get(note_id)
         if win is not None:
-            win.destroy()
+            try:
+                win.destroy()
+            except Exception:  # noqa: BLE001 - sudah ditutup panggilan lain (mis. dua pesan sekaligus)
+                log.debug("Sticky %s sudah tertutup", note_id)
 
     def _on_sticky_form_closing(self, note_id: str, args) -> None:
         """FormClosing WinForms (thread GUI). Ditutup pengguna (Alt+F4) = sticky dilepas.
@@ -475,10 +488,14 @@ def run(base_url: str, startup: bool = False) -> bool:
     pending = sticky_store.restorable_ids()
     first_sticky = None
     if startup:
-        if not pending:
+        # Sticky pertama yang benar-benar bisa dibuka menjadi jendela induk; catatan yang ternyata
+        # sudah dihapus/diarsipkan (mis. notes.json sesaat tidak terbaca) dilewati.
+        while pending and first_sticky is None:
+            cand = pending.pop(0)
+            if shell.open_sticky(cand, prestart=True).get("ok"):
+                first_sticky = cand
+        if first_sticky is None:
             return True  # tidak ada sticky untuk dipulihkan: tidak perlu tampil apa pun
-        first_sticky = pending.pop(0)
-        shell.open_sticky(first_sticky, prestart=True)
         host = shell._stickies[first_sticky]
     else:
         host = shell.create_main("/")

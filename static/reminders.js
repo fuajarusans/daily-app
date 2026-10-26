@@ -68,5 +68,14 @@
     setupEnableButton();
     poll();
     setInterval(poll, POLL_MS);
+    // Catatan berubah (di halaman ini atau di sticky): lencana langsung diperbarui, tanpa
+    // menunggu jadwal 5 menit.
+    if ("BroadcastChannel" in window) {
+      var timer = null;
+      new BroadcastChannel("dailyapp-notes").onmessage = function () {
+        clearTimeout(timer);
+        timer = setTimeout(poll, 400);
+      };
+    }
   });
 })();

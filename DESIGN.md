@@ -74,6 +74,8 @@ menjadi dekorasi (audit no. 24). Satu ikon = satu makna di seluruh aplikasi.
 - Panah kiri/kanan memindah fokus di rail; Enter membuka; Esc kembali ke Beranda (tidak aktif
   saat mengetik di input, textarea, atau kanvas). Tab tetap berfungsi seperti biasa.
 - Tile terakhir yang dibuka diingat, sehingga kembali ke Beranda mengembalikan fokus ke sana.
+- Nama tile: tile terfokus putih tebal; tile lain tampil samar (#b4c2d1, tetap >= 4,5:1 di atas
+  latar sorotan) sebagai pratinjau isi rail (permintaan pemilik, v1.4.0).
 - Ponsel: rail bisa digeser dengan jari (scroll-snap), nama tile selalu tampil, target sentuh ≥44 px.
 
 ## Suara
@@ -99,4 +101,8 @@ berbunyi setelah klik pertama karena kebijakan autoplay browser.
 - **Footer:** hak cipta © 2026 Fajar Santoso, lisensi AGPL-3.0, kode sumber, dan Instagram @fajar_snts.
 - **Tanpa bayangan** kecuali toast (melayang di atas konten).
 - **Kategori Catatan dibedakan ikon, chip netral:** warna merah/kuning/hijau khusus status jatuh tempo, agar satu warna tidak bermakna ganda.
+- **Prioritas = ikon bendera + label:** hanya "Tinggi" berwarna (ungu, tidak dipakai status); Sedang/Rendah chip netral, jadi makna tidak bergantung pada warna.
+- **Checklist diedit di tempat:** item dicentang dan diketik langsung di kartu dan sticky (seperti kertas), tombol prioritas/hapus/pegangan muncul saat baris disorot atau difokus (selalu tampil di layar sentuh); keyboard setara mouse (Enter, Tab, Alt+↑/↓), dan klik pegangan membuka menu pindah sebagai pengganti seret (WCAG 2.5.7).
+- **Prioritas di sticky sempit:** label disingkat T/S/R; Rendah berbingkai, Sedang berlatar, Tinggi warna terbalik, jadi ketiganya beda tanpa bergantung pada warna.
+- **Hapus tanpa dialog, dengan Urungkan:** dialog konfirmasi diganti toast "Urungkan" 8 detik (juga Ctrl+Z), berlaku juga untuk Arsipkan dan selesai pada tugas berulang.
 - **Pratinjau desain invoice tetap putih:** menggambarkan kertas PDF, bukan bagian tema.

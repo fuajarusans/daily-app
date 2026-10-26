@@ -87,7 +87,7 @@ def _home_tiles() -> list[dict[str, Any]]:
     """Isi rail Beranda: Catatan, Invoice, lalu semua tool terdaftar."""
     tiles: list[dict[str, Any]] = [
         {"id": "notes", "href": "/notes", "title": "Catatan & Pengingat", "glyph": "notes",
-         "desc": "Catatan, tugas, dan pengingat jatuh tempo, lengkap dengan kategori dan tag.",
+         "desc": "Catatan, checklist, tugas berulang, dan pengingat jatuh tempo, lengkap dengan kategori dan tag.",
          "chips": ["Tersimpan permanen"], "ready": True, "badge": True, "hue": "#e09f3e"},
         {"id": "invoice", "href": "/invoice", "title": "Invoice Generator", "glyph": "file-invoice",
          "desc": "Invoice PDF untuk beberapa brand: nomor otomatis, klien tersimpan, 10 desain.",

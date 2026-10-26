@@ -21,18 +21,31 @@
   <div class="palette" id="palette" role="group" aria-label="Warna sticky" hidden>
     {% for c in colors %}<button type="button" class="sw" data-color="{{ c.id }}" style="--sw: {{ c.bg }}" title="{{ c.label }}" aria-label="Warna {{ c.label }}" aria-pressed="false"></button>{% endfor %}
   </div>
-  <main class="body">
+  <main class="body" id="body">
     <input id="title" class="title" type="text" maxlength="200" placeholder="Judul" aria-label="Judul catatan" autocomplete="off">
+    <div id="cl"></div>
     <textarea id="text" class="text" placeholder="Tulis catatan…" aria-label="Isi catatan"></textarea>
+    <button type="button" class="addlist" id="btnList" hidden>{{ icon('list-check') }}<span>Tambah checklist</span></button>
   </main>
+  <div class="ask" id="ask" role="group" aria-label="Semua item checklist selesai" hidden>
+    <span>Semua item selesai. Tandai selesai?</span>
+    <button type="button" id="askYes">Ya</button>
+    <button type="button" id="askNo">Nanti</button>
+  </div>
+  <div class="ask" id="undoBar" hidden>
+    <span id="undoMsg" role="status" aria-live="polite"></span>
+    <button type="button" id="btnUndo">Urungkan</button>
+  </div>
   <footer class="foot">
     <button type="button" class="done" id="btnDone">{{ icon('check') }}<span id="doneLabel">Selesai</span></button>
     <span class="due" id="due" hidden></span>
+    <span class="prio" id="prio" hidden></span>
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
     <span class="grip" id="grip" title="Seret untuk mengubah ukuran" aria-hidden="true"></span>
   </footer>
 </div>
-<script>window.STICKY = {{ {"id": note_id, "sticky": sticky, "colors": colors, "categories": categories}|tojson }};</script>
+<script>window.STICKY = {{ {"id": note_id, "sticky": sticky, "colors": colors, "categories": categories, "priorities": priorities, "recurrences": recurrences}|tojson }};</script>
+<script src="/static/checklist.js?v={{ app_version }}"></script>
 <script src="/static/sticky.js?v={{ app_version }}"></script>
 </body>
 </html>

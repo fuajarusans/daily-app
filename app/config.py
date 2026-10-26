@@ -94,17 +94,38 @@ NOTE_CATEGORIES = [
 ]
 DEFAULT_NOTE_CATEGORY = "umum"
 
+# Prioritas catatan & item checklist (urut dari paling penting). Hanya "tinggi" yang berwarna:
+# merah/kuning/hijau khusus status jatuh tempo (DESIGN.md), jadi prioritas dibedakan ikon + label.
+NOTE_PRIORITIES = [
+    {"id": "tinggi", "label": "Tinggi"},
+    {"id": "sedang", "label": "Sedang"},
+    {"id": "rendah", "label": "Rendah"},
+]
+# Tugas berulang. "days" = panjang periode, dipakai membatasi jarak pengingat H-n.
+NOTE_RECURRENCES = [
+    {"id": "harian",   "label": "Harian",   "days": 1},
+    {"id": "mingguan", "label": "Mingguan", "days": 7},
+    {"id": "bulanan",  "label": "Bulanan",  "days": 28},
+]
+# Checklist: item (level 0) boleh punya sub-item (level 1), tanpa tingkat lebih dalam.
+CHECKLIST_MAX_LEVEL = 1
+CHECKLIST_MAX_ITEMS = 300
+CHECKLIST_TEXT_MAX = 500
+# Hapus, arsipkan, dan selesai-berulang bisa diurungkan selama ini (detik) sejak terjadi.
+NOTE_UNDO_SECONDS = 60
+
 # Sticky note: ukuran dalam piksel logis (sebelum skala DPI Windows).
 STICKY_DEFAULT_SIZE = (300, 280)
 STICKY_MIN_SIZE = (220, 180)
-# Warna kertas sticky: (id, label, latar, teks, teks redup). Kontras teks >= 4.5:1.
+# Warna kertas sticky: (id, label, latar, teks, teks redup, cincin fokus). Kontras teks >= 4.5:1,
+# cincin fokus >= 3:1 terhadap kertas dan sorotan barisnya.
 STICKY_COLORS = [
-    ("krem",  "Krem",  "#fbf1cf", "#2b2410", "#5f5023"),
-    ("biru",  "Biru",  "#dbe9fb", "#102033", "#3a5372"),
-    ("ungu",  "Ungu",  "#e9e1fb", "#221536", "#56467a"),
-    ("pink",  "Pink",  "#fbe1ea", "#35131f", "#74404f"),
-    ("abu",   "Abu",   "#e8ebf0", "#1d2433", "#475166"),
-    ("gelap", "Gelap", "#0f1a30", "#f4f7fb", "#b4c2d1"),
+    ("krem",  "Krem",  "#fbf1cf", "#2b2410", "#5f5023", "#0070d1"),
+    ("biru",  "Biru",  "#dbe9fb", "#102033", "#3a5372", "#0070d1"),
+    ("ungu",  "Ungu",  "#e9e1fb", "#221536", "#56467a", "#0070d1"),
+    ("pink",  "Pink",  "#fbe1ea", "#35131f", "#74404f", "#0070d1"),
+    ("abu",   "Abu",   "#e8ebf0", "#1d2433", "#475166", "#0070d1"),
+    ("gelap", "Gelap", "#0f1a30", "#f4f7fb", "#b4c2d1", "#62abff"),
 ]
 STICKY_DEFAULT_COLOR = "krem"
 

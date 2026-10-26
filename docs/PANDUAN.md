@@ -105,13 +105,26 @@ Semua tool memakai pola yang sama:
 Buka lewat menu **📝 Catatan** di bilah menu atas (sebelah logo **Daily App**), atau kartu **Catatan & Pengingat** di dashboard.
 
 **Menambah:** klik **➕ Tambah Catatan**, isi judul / isi, pilih **Kategori** (Umum, Tugas,
-Dokumen, Klien, Jadwal, Ide), lalu (opsional) **tag**, **tanggal jatuh tempo**, dan
-**"ingatkan sejak H-…"** (mis. isi `30` agar diingatkan 30 hari sebelumnya — cocok untuk
-masa berlaku paspor/izin/kontrak). Centang **Sematkan** agar selalu di atas, lalu **Simpan**.
+Dokumen, Klien, Jadwal, Ide), lalu (opsional) **checklist** (satu item per baris; awali dengan
+spasi untuk sub-item), **prioritas**, **tag**, **tanggal jatuh tempo**, **ulangi**
+(harian/mingguan/bulanan), dan **"ingatkan sejak H-…"** (mis. isi `30` agar diingatkan 30 hari
+sebelumnya — cocok untuk masa berlaku paspor/izin/kontrak). Centang **Sematkan** agar selalu di
+atas, lalu **Simpan**.
 
-**Mengelola:** tombol **✓ Selesai** menandai tuntas, **📌** menyematkan, **✏️** mengedit,
-**🗑️** menghapus. Saring cepat lewat **chip kategori** (menampilkan jumlah per kategori),
-kotak **Cari**, atau filter **tag**.
+**Checklist:** dicentang, diubah, dan ditambah langsung di kartu (juga di sticky). **Enter** =
+item baru, **Tab**/**Shift+Tab** = jadikan/lepas sub-item, **Alt+↑/↓** = pindah item,
+**Backspace** di item kosong = hapus. Klik pegangan bertitik di kiri item untuk menu Naik/Turun/
+Jadikan sub-item/Jadikan item utama, atau seret pegangan itu (geser ke kanan = sub-item); ikon
+bendera mengatur prioritas item. Saat semua item dicentang, muncul tawaran
+**Tandai selesai**.
+
+**Mengelola:** tombol **✓ Selesai** menandai tuntas (pada **tugas berulang**, tenggat maju ke
+jadwal berikutnya dan centang checklist dikosongkan), **📌** menyematkan, **✏️** mengedit,
+**🗃️ Arsipkan** menyembunyikan catatan lama (lihat lewat tombol **Arsip**, lalu **Pulihkan**),
+**🗑️** menghapus. Hapus, arsipkan, dan selesai-berulang bisa dibatalkan lewat **Urungkan** di
+pojok kanan bawah (8 detik) atau **Ctrl+Z**. Saring cepat lewat **chip kategori** (menampilkan
+jumlah per kategori), kotak **Cari** (termasuk isi checklist), filter **tag**, atau filter
+**prioritas**.
 
 **Warna status:** 🔴 lewat tempo · 🟠 jatuh tempo hari ini · 🟡 akan datang. Angka di
 lencana **📝 Catatan** = jumlah yang lewat tempo + hari ini.

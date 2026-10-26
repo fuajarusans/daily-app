@@ -33,18 +33,25 @@
     <button type="button" id="btnClose" class="text-slate-500 hover:text-slate-700 text-2xl leading-none" title="Tutup">&times;</button>
   </div>
   <div>
-    <label class="block text-sm font-medium text-slate-700 mb-1">Judul</label>
+    <label for="f-title" class="block text-sm font-medium text-slate-700 mb-1">Judul</label>
     <input id="f-title" type="text" maxlength="200" placeholder="mis. Perpanjang KITAS klien A"
            class="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
   </div>
   <div>
-    <label class="block text-sm font-medium text-slate-700 mb-1">Isi / detail</label>
-    <textarea id="f-body" rows="8" placeholder="Tulis detail di sini..."
-              class="w-full border border-slate-300 rounded-md px-3 py-2 resize-y min-h-[10rem] leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+    <label for="f-body" class="block text-sm font-medium text-slate-700 mb-1">Isi / detail</label>
+    <textarea id="f-body" rows="6" placeholder="Tulis detail di sini..."
+              class="w-full border border-slate-300 rounded-md px-3 py-2 resize-y min-h-[8rem] leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
   </div>
+  <div id="f-checklist-wrap">
+    <label for="f-checklist" class="block text-sm font-medium text-slate-700 mb-1">Checklist (opsional)</label>
+    <textarea id="f-checklist" rows="4" placeholder="Beli susu&#10;Bayar listrik&#10;  token 100 ribu" aria-describedby="f-checklist-help"
+              class="w-full border border-slate-300 rounded-md px-3 py-2 resize-y leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+    <p id="f-checklist-help" class="text-xs text-slate-600 mt-1">Satu item per baris; awali dengan spasi untuk sub-item. Setelah disimpan, item dicentang, diubah, dan diurutkan langsung di kartu.</p>
+  </div>
+  <p id="f-checklist-note" class="hidden text-sm text-slate-600">Checklist diedit langsung di kartu catatan.</p>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+      <label for="f-category" class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
       <select id="f-category" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
         {% for c in categories %}
         <option value="{{ c.id }}">{{ c.label }}</option>
@@ -52,27 +59,46 @@
       </select>
     </div>
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Tag (pisahkan koma)</label>
+      <label for="f-priority" class="block text-sm font-medium text-slate-700 mb-1">Prioritas</label>
+      <select id="f-priority" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <option value="">Tanpa prioritas</option>
+        {% for p in priorities %}
+        <option value="{{ p.id }}">{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-tags" class="block text-sm font-medium text-slate-700 mb-1">Tag (pisahkan koma)</label>
       <input id="f-tags" type="text" placeholder="penting, 2026"
              class="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
     </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Jatuh tempo</label>
+      <label for="f-due" class="block text-sm font-medium text-slate-700 mb-1">Jatuh tempo</label>
       <input id="f-due" type="date"
              class="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
     </div>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Ingatkan sejak (H-…)</label>
+      <label for="f-recur" class="block text-sm font-medium text-slate-700 mb-1">Ulangi</label>
+      <select id="f-recur" aria-describedby="f-recur-help" class="w-full border border-slate-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <option value="">Tidak berulang</option>
+        {% for r in recurrences %}
+        <option value="{{ r.id }}">{{ r.label }}</option>
+        {% endfor %}
+      </select>
+      <p id="f-recur-help" class="text-xs text-slate-600 mt-1">Saat ditandai selesai, tenggat maju ke jadwal berikutnya.</p>
+    </div>
+    <div>
+      <label for="f-lead" class="block text-sm font-medium text-slate-700 mb-1">Ingatkan sejak (H-…)</label>
       <input id="f-lead" type="number" min="0" max="365" value="7"
              class="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600">
     </div>
-    <div class="flex items-end">
-      <label class="inline-flex items-center gap-2 text-sm text-slate-700 pb-2">
-        <input id="f-pinned" type="checkbox" class="rounded border-slate-300"> Sematkan (pin)
-      </label>
-    </div>
+  </div>
+  <div>
+    <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+      <input id="f-pinned" type="checkbox" class="rounded border-slate-300"> Sematkan (pin)
+    </label>
   </div>
   <div class="flex items-center gap-2 pt-1">
     <button type="submit" id="btnSave"
@@ -90,13 +116,26 @@
 <div class="flex flex-wrap items-center gap-3 mb-4">
   <input id="q" type="search" placeholder="Cari catatan…" aria-label="Cari catatan"
          class="flex-1 min-w-[180px] border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
-  <select id="tagFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+  <select id="tagFilter" aria-label="Filter tag" class="border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
     <option value="">Semua tag</option>
+  </select>
+  <select id="prioFilter" aria-label="Filter prioritas" class="border border-slate-300 rounded-md px-3 py-2 text-sm bg-white">
+    <option value="">Semua prioritas</option>
+    {% for p in priorities %}
+    <option value="{{ p.id }}">Prioritas {{ p.label|lower }}</option>
+    {% endfor %}
+    <option value="-">Tanpa prioritas</option>
   </select>
   <label class="inline-flex items-center gap-2 text-sm text-slate-600">
     <input id="showDone" type="checkbox" checked class="rounded border-slate-300"> Tampilkan selesai
   </label>
+  <button id="btnArchive" type="button" aria-pressed="false"
+          class="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50">
+    {{ icon('archive') }} <span id="archiveLabel">Arsip</span>
+  </button>
 </div>
+<p id="archiveNote" class="hidden text-sm text-slate-600 mb-3">Catatan terarsip tidak muncul di daftar, pengingat, dan Beranda. Pulihkan untuk memakainya lagi.</p>
+<p id="clStatus" class="sr-only" role="status" aria-live="polite"></p>
 
 <!-- Dua kolom di layar lebar agar kartu tidak terlalu lebar; isi panjang dilipat 2 baris. -->
 <div id="notesList" class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start"></div>
@@ -105,7 +144,14 @@
 </div>
 {% endblock %}
 
+{% block hints %}<span><span class="key">Esc</span> Beranda</span><span><span class="key">Alt+↑/↓</span> pindah item checklist</span><span><span class="key">Tab</span> jadikan sub-item</span>{% endblock %}
+
 {% block scripts %}
-<script>window.CATEGORIES = {{ categories|tojson }};</script>
+<script>
+window.CATEGORIES = {{ categories|tojson }};
+window.PRIORITIES = {{ priorities|tojson }};
+window.RECURRENCES = {{ recurrences|tojson }};
+</script>
+<script src="/static/checklist.js"></script>
 <script src="/static/notes.js"></script>
 {% endblock %}

@@ -11,7 +11,7 @@
 
 <p align="center">
   <!-- Ganti LINK_GOOGLE_DRIVE dengan link berbagi folder/file installer di Google Drive. -->
-  <a href="LINK_GOOGLE_DRIVE"><b>Unduh Daily App 1.3.0 untuk Windows</b></a>
+  <a href="LINK_GOOGLE_DRIVE"><b>Unduh Daily App 1.4.0 untuk Windows</b></a>
   ·
   <a href="#cara-memasang">Cara memasang</a>
   ·
@@ -35,8 +35,8 @@ ke Beranda.
 | Hapus background | Latar belakang foto dihapus otomatis (AI) |
 | Hapus watermark | Sapukan kuas di atas watermark, lalu hapus (OpenCV atau LaMa AI) |
 | QR code | Teks atau URL menjadi gambar QR |
-| Catatan & pengingat | Catatan, tugas, tenggat, dan pengingat jatuh tempo |
-| Sticky note | Seret kartu catatan keluar jendela untuk menempelkannya di desktop |
+| Catatan & pengingat | Catatan dengan checklist (plus sub-item), prioritas, tugas berulang, tenggat, pengingat jatuh tempo, arsip, dan Urungkan |
+| Sticky note | Seret kartu catatan keluar jendela untuk menempelkannya di desktop; checklist bisa dicentang langsung di sticky |
 | Invoice | Invoice PDF untuk beberapa brand: 10 desain, nomor otomatis, klien tersimpan, PPN & diskon, terbilang |
 
 Banyak alat menerima beberapa file sekaligus; hasilnya diunduh sebagai satu `.zip`.
@@ -47,7 +47,7 @@ alat bisa dipakai tanpa internet.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/catatan.png" alt="Catatan dengan pengingat jatuh tempo"></td>
+    <td width="50%"><img src="docs/screenshots/catatan.png" alt="Catatan dengan checklist, prioritas, dan pengingat jatuh tempo"></td>
     <td width="50%"><img src="docs/screenshots/invoice.png" alt="Daftar invoice dengan status lunas dan belum lunas"></td>
   </tr>
   <tr>
@@ -60,7 +60,7 @@ alat bisa dipakai tanpa internet.
 
 ## Cara memasang
 
-1. Unduh `DailyApp-Setup-1.3.0.exe` dari link di atas (sekitar 615 MB, karena semua komponen
+1. Unduh `DailyApp-Setup-1.4.0.exe` dari link di atas (sekitar 615 MB, karena semua komponen
    sudah termasuk).
 2. Jalankan. Bila muncul layar **"Windows protected your PC"**, klik **More info**, lalu
    **Run anyway**. Peringatan ini muncul karena aplikasi belum ditandatangani sertifikat
@@ -75,16 +75,16 @@ alat bisa dipakai tanpa internet.
 - Daily App tampil sebagai jendela aplikasi memakai Microsoft Edge WebView2 (sudah ada di
   Windows 11 dan sebagian besar Windows 10).
 
-**Memeriksa keaslian file (opsional):** SHA-256 `DailyApp-Setup-1.3.0.exe`:
+**Memeriksa keaslian file (opsional):** SHA-256 `DailyApp-Setup-1.4.0.exe`:
 
 ```
-f92cfd7dfeeba21fad8869cfde32103a6b644853d03401fed897c497d8128227
+36615f0c64bd119e48781733ddeb62a743631db68861abdb0034d363f3e22de3
 ```
 
 Cek di PowerShell:
 
 ```powershell
-Get-FileHash .\DailyApp-Setup-1.3.0.exe -Algorithm SHA256
+Get-FileHash .\DailyApp-Setup-1.4.0.exe -Algorithm SHA256
 ```
 
 ## Privasi & data

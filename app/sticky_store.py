@@ -97,19 +97,38 @@ def remove(note_id: str) -> None:
             _write(items)
 
 
+def raw(note_id: str) -> Optional[dict]:
+    """Status tersimpan apa adanya (None bila belum pernah ditempel), untuk diurungkan."""
+    with _LOCK:
+        item = _read().get(note_id)
+        return dict(item) if isinstance(item, dict) else None
+
+
+def restore(note_id: str, item: dict) -> None:
+    """Kembalikan status sticky yang disimpan raw() (urungkan hapus catatan)."""
+    with _LOCK:
+        items = _read()
+        cur = _clean(item)
+        cur["updated_at"] = datetime.now().isoformat(timespec="seconds")
+        items[note_id] = cur
+        _write(items)
+
+
 def restorable_ids() -> list[str]:
-    """Sticky berstatus terbuka yang catatannya masih ada (untuk dipulihkan saat start)."""
+    """Sticky berstatus terbuka yang catatannya masih ada dan tidak diarsipkan (untuk
+    dipulihkan saat start). Status sticky catatan terarsip disimpan untuk saat dipulihkan."""
     try:
-        notes = json.loads(config.NOTES_FILE.read_text(encoding="utf-8"))
+        notes = json.loads(config.NOTES_FILE.read_text(encoding="utf-8-sig"))
         valid = {n.get("id") for n in notes if isinstance(n, dict)}
+        active = {n.get("id") for n in notes if isinstance(n, dict) and not n.get("archived")}
     except FileNotFoundError:
-        valid = set()
+        valid = active = set()
     except (OSError, ValueError, AttributeError, TypeError):
         # notes.json tidak terbaca: jangan memangkas apa pun. Catatan yang hilang tetap
         # tertangani karena open_sticky menolak catatan yang tidak ada.
         return open_ids()
     prune(valid)
-    return [i for i in open_ids() if i in valid]
+    return [i for i in open_ids() if i in active]
 
 
 def prune(valid_ids: Iterable[str]) -> None:

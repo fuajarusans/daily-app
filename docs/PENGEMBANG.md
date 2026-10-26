@@ -63,6 +63,29 @@ dokumen**.
 - Tiap catatan: judul, isi, **kategori** (Umum/Tugas/Dokumen/Klien/Jadwal/Ide), **tag**,
   **pin**, **status selesai**, dan **tanggal jatuh tempo** + *"ingatkan sejak H-…"* (mis.
   H-30 untuk dokumen). Saring cepat lewat **chip kategori** di atas daftar.
+- **Checklist** (1.4): daftar datar `checklist: [{id, text, done, priority, level}]`; sub-item =
+  `level: 1` yang mengikuti item `level: 0` di atasnya (maks. 1 tingkat). Diubah per item lewat
+  `POST /api/notes/<id>/checklist {"ops": [...]}` (`add`, `set`, `remove`, `move`, `clear_done`)
+  yang diterapkan server pada daftar terbaru di bawah lock, jadi edit dari sticky dan halaman
+  Catatan tidak saling menimpa. Tampilan + kendali dipakai bersama di `static/checklist.js`
+  (keyboard: Enter, Tab/Shift+Tab, Alt+↑/↓, Backspace; pegangan: klik = menu pindah, seret =
+  pindah langsung). Teks diketik dikirim setelah jeda 600 ms; yang belum terkirim (dan isi kolom
+  "Tambah item") ikut dikirim saat kartu digambar ulang, halaman ditutup, atau sticky ditutup.
+- **Prioritas** `priority` (tinggi/sedang/rendah, `NOTE_PRIORITIES`) ikut urutan daftar di dalam
+  status yang sama. Hanya "tinggi" berwarna (ungu): merah/kuning/hijau khusus status tenggat.
+- **Tugas berulang** `recurrence` (harian/mingguan/bulanan, `NOTE_RECURRENCES`): `PUT {done: true}`
+  memajukan `due` (`notes_store.next_due`, bulanan memakai tanggal acuan `recur_day`), mereset
+  centang checklist, dan respons berisi `recurred: true`. Jarak pengingat dibatasi < periode.
+  Klien mengirim `expect_due` (tenggat yang terlihat) dan server tidak memajukan dua kali dalam
+  3 detik, jadi klik ganda atau tampilan basi tidak melompati satu periode.
+- **Arsip** `archived` + `archived_at`: tidak ikut daftar, hitungan, pengingat, Beranda, maupun
+  pemulihan sticky saat start (`GET /api/notes` mengembalikan `archived` terpisah).
+- **Urungkan**: hapus, arsipkan, dan selesai-berulang disimpan sementara di memori (60 detik,
+  `NOTE_UNDO_SECONDS`); `POST /api/notes/<id>/undo` mengembalikannya (hapus: catatan utuh + status
+  sticky; lainnya: hanya kolom yang diubah, jadi edit sesudahnya tidak ikut hilang).
+- Kolom baru diisi bawaannya saat dibaca (`_annotate`), tanpa migrasi; `notes.json` tetap list.
+  Penulis membaca berkas dengan `strict=True` (gagal baca = error, bukan daftar kosong), dan
+  `notes.json` yang rusak disalin dulu ke `notes.rusak-<waktu>.json`.
 - Sorot warna otomatis: **merah** (lewat tempo), **oranye** (hari ini), **kuning** (akan datang).
 - **Lencana** jumlah jatuh tempo muncul di header semua halaman.
 - **Notifikasi browser**: klik **🔔 Aktifkan pengingat** sekali untuk memberi izin; pop-up
@@ -89,7 +112,10 @@ kartu) menjadi **sticky note**: jendela kecil tanpa bingkai yang memuat `/sticky
   `updated_at` catatan).
 - `templates/sticky.html` + `static/sticky.js` + `static/sticky.css`: halaman mandiri tanpa
   Tailwind (tiap sticky = satu proses WebView2, ±30–50 MB). Simpan otomatis, sinkron dengan
-  halaman Catatan lewat `BroadcastChannel("dailyapp-notes")`.
+  halaman Catatan lewat `BroadcastChannel("dailyapp-notes")` (pesan `changed`, `deleted`,
+  `archived`, `sticky`; `reminders.js` ikut mendengar untuk memperbarui lencana). Checklist
+  memakai `static/checklist.js` yang sama dengan halaman Catatan; teks item yang belum terkirim
+  ikut disimpan `stickyFlushSync()` saat Alt+F4 atau Keluar dari tray.
 - Menutup jendela utama saat masih ada sticky: aplikasi tetap jalan di tray. `desktop.py --startup`
   (shortcut Startup dari installer) memulihkan sticky saat Windows menyala, dan langsung keluar
   bila tidak ada sticky. Membuka Daily App lagi menampilkan jendela yang sudah berjalan
@@ -289,6 +315,13 @@ onnxruntime nonaktif dan dilepas setelah 10 menit menganggur (`AI_IDLE_RELEASE_S
    Tutup jendela utama → sticky tetap ada, ikon Daily App di tray. Jalankan `python desktop.py`
    lagi → jendela utama muncul kembali. Keluar lewat tray, lalu `python desktop.py --startup` →
    hanya sticky yang muncul.
+10. **Checklist, prioritas, berulang, arsip** (pakai data uji: set `DAILYAPP_HOME` ke folder
+    kosong agar `data/` Anda tidak tersentuh): buat catatan dengan beberapa baris checklist (baris
+    berawalan spasi = sub-item), prioritas Tinggi, dan Ulangi Mingguan. Di kartu: centang item,
+    Enter/Tab/Alt+↑ di item, seret item lewat pegangannya. Centang semua → muncul tawaran
+    **Tandai selesai**. Klik **Selesai** → tenggat maju 7 hari + toast **Urungkan**. Coba
+    **Arsipkan** dan **Hapus**, lalu **Urungkan** (atau Ctrl+Z). Di sticky, centang item →
+    kartu di halaman Catatan ikut berubah.
 
 ---
 
@@ -374,7 +407,8 @@ Daily App/
 ├── static/
 │   ├── app.js              # JS vanilla: upload, status, download
 │   ├── watermark.js        # JS editor kanvas Hapus Watermark
-│   ├── notes.js            # JS Catatan & Pengingat (CRUD + render + seret jadi sticky)
+│   ├── notes.js            # JS Catatan & Pengingat (CRUD + render + seret jadi sticky, arsip, urungkan)
+│   ├── checklist.js        # Checklist di kartu & sticky (tampilan, keyboard, seret, operasi per item)
 │   ├── sticky.js           # JS + CSS jendela sticky note (sticky.css)
 │   ├── invoice.js          # JS Invoice Generator (form, kalkulasi live, klien, brand)
 │   ├── theme.js            # Token warna tema konsol (konfigurasi Tailwind)
