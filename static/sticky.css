@@ -1,0 +1,68 @@
+/* Sticky note di desktop. Warna kertas diatur lewat --bg/--ink/--muted oleh sticky.js. */
+:root {
+  --bg: #fbf1cf;
+  --ink: #2b2410;
+  --muted: #5f5023;
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --hover: color-mix(in srgb, var(--ink) 9%, transparent);
+  --focus: #0070d1;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.ico { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -0.125em; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 4px; }
+
+.sticky { display: flex; flex-direction: column; height: 100%; border-top: 4px solid color-mix(in srgb, var(--ink) 22%, var(--bg)); }
+
+/* Bilah atas = area seret jendela (pywebview-drag-region). */
+.bar { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 4px 0 10px; cursor: grab; user-select: none; }
+.bar:active { cursor: grabbing; }
+.cat { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tools { margin-left: auto; display: flex; gap: 2px; }
+.tb { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; color: var(--muted); font-size: 16px; }
+.tb:hover { background: var(--hover); color: var(--ink); }
+.tb[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.palette { display: flex; gap: 6px; padding: 4px 10px 8px; }
+.palette[hidden] { display: none; }
+/* Tepi swatch memakai --muted (>= 3:1 terhadap kertas) agar warna terang tetap terlihat. */
+.sw { width: 22px; height: 22px; border-radius: 50%; background: var(--sw); border: 2px solid var(--muted); }
+.sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+.sw:focus-visible { border-radius: 50%; }
+
+/* Mode kontras tinggi Windows: pertahankan warna swatch dan tanda tombol yang aktif. */
+@media (forced-colors: active) {
+  .sw { forced-color-adjust: none; }
+  .tb[aria-pressed="true"] { outline: 2px solid Highlight; }
+}
+
+.body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 12px; }
+.title, .text { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; padding: 2px 0; }
+.title { font-size: 15px; font-weight: 600; }
+.text { flex: 1; resize: none; margin-top: 2px; line-height: 1.5; }
+.title::placeholder, .text::placeholder { color: var(--muted); opacity: 1; }
+body.is-done .title { text-decoration: line-through; color: var(--muted); }
+
+.foot { position: relative; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 22px 6px 10px; border-top: 1px solid var(--line); }
+.done { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink); }
+.done:hover { background: var(--hover); }
+.due { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.due[hidden] { display: none; }
+.due.overdue { background: #fde2e1; color: #8a1c17; }
+.due.today { background: #fdebc8; color: #7a4a00; }
+.due.soon { background: #fdf3c4; color: #6b5200; }
+.due.scheduled, .due.done { background: var(--hover); color: var(--muted); }
+.saved { margin-left: auto; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* Pegangan ubah ukuran di pojok kanan bawah (jendela tanpa bingkai tidak punya tepi resize). */
+.grip { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none;
+  background: linear-gradient(135deg, transparent 0 50%, var(--muted) 50% 56%, transparent 56% 66%, var(--muted) 66% 72%, transparent 72%); opacity: .7; }
+.grip:hover { opacity: 1; }

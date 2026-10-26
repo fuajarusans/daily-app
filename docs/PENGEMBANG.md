@@ -4,9 +4,9 @@ Dokumen ini untuk pengembang (menjalankan dari kode sumber, menambah tool, membu
 web (diakses lewat browser di `http://localhost:8000`) berisi kumpulan *tools* harian
 untuk konversi dan manipulasi file.
 
-Tidak butuh internet untuk operasi sehari-hari (kecuali tool "Hapus Background" dan engine
-**LaMa** pada "Hapus Watermark" — masing-masing mengunduh model sekali saat pemakaian
-pertama), tidak di-deploy ke server.
+Tidak butuh internet dan tidak di-deploy ke server. Installer Windows menyertakan LibreOffice,
+Ghostscript, dan model AI (folder `vendor/`). Di mode pengembang tanpa `vendor/`, dipakai
+LibreOffice/Ghostscript yang terpasang, dan model AI diunduh sekali saat pemakaian pertama.
 
 > 📘 Mau langsung pakai? Lihat **[PANDUAN.md](PANDUAN.md)** untuk cara pemakaian
 > harian dan cara update.
@@ -44,12 +44,12 @@ asli. Tema biru-hitam dengan aksen biru PlayStation. Arah desain, palet, dial, d
 | Tool | Fungsi | Library | Catatan |
 |------|--------|---------|---------|
 | 📄 PDF ke Word | `.pdf` → `.docx` | pdf2docx | — |
-| 🗜️ Compress PDF | Perkecil ukuran PDF | pikepdf / Ghostscript | Metode "Maksimal" perlu Ghostscript |
-| 📑 Office ke PDF | `.docx/.xlsx/.pptx` → `.pdf` | LibreOffice | **Wajib** LibreOffice terpasang |
+| 🗜️ Compress PDF | Perkecil ukuran PDF | pikepdf / Ghostscript | Ghostscript (metode "Maksimal") ikut installer |
+| 📑 Office ke PDF | `.docx/.xlsx/.pptx` → `.pdf` | LibreOffice | LibreOffice ikut installer; profil sendiri, satu konversi per waktu |
 | 🖼️ Resize / Compress Gambar | Ubah ukuran, kualitas, atau target ukuran file (KB) | Pillow | Mendukung batch; mode target: PNG→JPG |
 | 🔄 Convert Format Gambar | PNG/JPG/JFIF/WEBP/HEIC/… | Pillow + pillow-heif | Mendukung batch |
-| ✂️ Hapus Background Gambar | Hapus latar otomatis (AI) | rembg | Unduh model ~170MB sekali (perlu internet) |
-| 🧽 Hapus Watermark | Tandai area di kanvas → hapus (inpainting); engine OpenCV / LaMa (AI) | opencv-python-headless · onnxruntime | Halaman kanvas khusus (`/watermark`); LaMa unduh model ~208MB sekali |
+| ✂️ Hapus Background Gambar | Hapus latar otomatis (AI) | rembg 2.0.75 (u2net) | Model ikut installer; sesi dipakai ulang & dilepas saat menganggur |
+| 🧽 Hapus Watermark | Tandai area di kanvas → hapus (inpainting); engine OpenCV / LaMa (AI) | opencv-python-headless · onnxruntime | Halaman kanvas khusus (`/watermark`); model LaMa ikut installer |
 | 🔳 Generate QR Code | Teks/URL → PNG | qrcode[pil] | — |
 
 ---
@@ -75,6 +75,26 @@ dropdown & chip filter otomatis menyesuaikan. Fitur ini adalah komponen tersendi
 (`app/notes_store.py` + `app/notes_routes.py`), **bukan** sebuah `Tool` di folder `tools/`
 — sebab tools bersifat *stateless* (file masuk → keluar), sedangkan catatan harus
 tersimpan permanen.
+
+### Sticky note di desktop (aplikasi Windows)
+
+Di jendela aplikasi, kartu catatan bisa diseret keluar jendela (atau klik ikon catatan di
+kartu) menjadi **sticky note**: jendela kecil tanpa bingkai yang memuat `/sticky/<id>`.
+
+- `app/desktop_shell.py`: jendela utama, sticky, ikon tray, single-instance. API untuk JS
+  lewat `window.pywebview.api` (`sticky_open`, `sticky_tear`, `sticky_close`,
+  `sticky_set_on_top`, `sticky_resize`, `open_stickies`, `show_main`).
+- `app/sticky_store.py`: posisi, ukuran, warna, "selalu di atas", dan status terbuka per catatan
+  di `data/stickies.json` (terpisah dari `notes.json` agar menggeser sticky tidak mengubah
+  `updated_at` catatan).
+- `templates/sticky.html` + `static/sticky.js` + `static/sticky.css`: halaman mandiri tanpa
+  Tailwind (tiap sticky = satu proses WebView2, ±30–50 MB). Simpan otomatis, sinkron dengan
+  halaman Catatan lewat `BroadcastChannel("dailyapp-notes")`.
+- Menutup jendela utama saat masih ada sticky: aplikasi tetap jalan di tray. `desktop.py --startup`
+  (shortcut Startup dari installer) memulihkan sticky saat Windows menyala, dan langsung keluar
+  bila tidak ada sticky. Membuka Daily App lagi menampilkan jendela yang sudah berjalan
+  (event `DailyAppShowMain`).
+- Di mode pengembang (`python run.py`, browser) fitur sticky disembunyikan.
 
 ---
 
@@ -151,9 +171,12 @@ Lalu tambahkan sketsa thumbnail-nya di `templates/invoice.html` (blok `#thumbs`,
 
 ## 📋 Prasyarat
 
-- **Python 3.10+** ([unduh](https://www.python.org/downloads/) — saat instal di Windows,
-  centang *"Add Python to PATH"*).
-- (Opsional, untuk tool tertentu) **LibreOffice** dan **Ghostscript** — lihat
+- **Python 3.11 atau 3.12, 64-bit** ([unduh](https://www.python.org/downloads/) — saat instal di
+  Windows, centang *"Add Python to PATH"*). `rembg==2.0.75` butuh Python ≥ 3.11, dan
+  `packaging/siapkan_vendor.py` membaca font LibreOffice lewat modul `msilib`, yang dihapus di
+  Python 3.13 (build berhenti dengan pesan galat bila font tidak terbaca).
+- **LibreOffice** dan **Ghostscript** terpasang di komputer pengembang: dipakai langsung di mode
+  pengembang, dan disalin ke `vendor/` saat membuat installer. Lihat
   [Dependency Eksternal](#-dependency-eksternal).
 
 ---
@@ -196,27 +219,46 @@ yang terbuka sebagai **jendela aplikasi sendiri** (Edge WebView2), tanpa Python 
 tanpa internet.
 
 **Membuat installer:** naikkan versi di `app/version.py`, lalu klik dua kali
-**`Build Installer.bat`**. Hasilnya: `dist/installer/DailyApp-Setup-<versi>.exe`.
-Butuh `pyinstaller` + `pywebview` (dipasang otomatis oleh skrip) dan **Inno Setup 6**
-(`winget install --id JRSoftware.InnoSetup -e --source winget`).
+**`Build Installer.bat`**. Hasilnya: `dist/installer/DailyApp-Setup-<versi>.exe` (±615 MB,
+build 15–25 menit). Butuh `.venv` dengan Python 3.11/3.12, `pyinstaller` + `pywebview` (dipasang otomatis oleh skrip),
+**Inno Setup 6** (`winget install --id JRSoftware.InnoSetup -e --source winget`), serta
+LibreOffice dan Ghostscript 64-bit terpasang di komputer build.
+
+Langkah 2 skrip menjalankan `packaging/siapkan_vendor.py`, yang membuat folder `vendor/`
+(±900 MB, di-gitignore) satu kali:
+- `vendor/libreoffice/`: salinan LibreOffice yang dipangkas (tanpa bantuan, kamus, galeri,
+  Java, Python), font bawaannya (dibaca dari paket MSI LibreOffice), dan DLL runtime VC++.
+- `vendor/ghostscript/`: `bin/` (`gswin64c.exe`, `gsdll64.dll` dengan file init tertanam, DLL
+  runtime VC++) dan `COPYING`.
+- `vendor/models/`: `u2net.onnx` dan `lama_fp32.onnx`, dicek checksum-nya.
+- `vendor/LICENSES/`, `vendor/manifest.json` (versi, ukuran, checksum).
+
+Jalankan `.venv\Scripts\python.exe packaging\siapkan_vendor.py --paksa --uji` untuk membangun
+ulang (mis. setelah memperbarui LibreOffice) sekaligus menguji konversinya. Saat instalasi,
+installer menjalankan `DailyApp.exe --warmup` untuk menyiapkan profil LibreOffice.
 
 | Hal | Mode pengembang (`python run.py`) | Aplikasi terpasang (`DailyApp.exe`) |
 |---|---|---|
-| Tampilan | Browser, `http://localhost:8000` | Jendela sendiri, port acak di 127.0.0.1 |
-| Data (`data/`, `storage/`, `models/`) | Folder proyek | `%LOCALAPPDATA%\DailyApp\` (+ `logs/`) |
+| Tampilan | Browser, `http://localhost:8000` | Jendela sendiri, port 47815 di 127.0.0.1 (acak bila terpakai) |
+| Data (`data/`, `storage/`, `models/`) | Folder proyek (+ profil LibreOffice `lo/`, profil WebView2 `webview/` saat `python desktop.py`) | `%LOCALAPPDATA%\DailyApp\` (+ `logs/`, profil LibreOffice `lo/`, profil WebView2 `webview/`) |
+| LibreOffice, Ghostscript, model AI | `vendor/` bila ada, selain itu yang terpasang/diunduh | `vendor/` di samping `DailyApp.exe` |
 | Unduhan | Browser | Dialog **Simpan sebagai** |
 | Pratinjau/buka PDF | Tab baru | Browser bawaan |
 
-Komponen: `desktop.py` (entry point: server + jendela, cegah buka ganda, log, cadangan ke
-browser bila WebView2 tak ada; `--server-only` untuk diagnosa), `packaging/daily_app.spec`
+Komponen: `desktop.py` (entry point: server + jendela lewat `app/desktop_shell.py`, cegah buka
+ganda, log, cadangan ke browser bila WebView2 tak ada; `--server-only` untuk diagnosa,
+`--startup` untuk sticky saat Windows menyala, `--warmup` untuk installer), `packaging/daily_app.spec`
 (PyInstaller, mode folder, tanpa konsol), `packaging/installer.iss` (Inno Setup: per-pengguna
 tanpa admin, shortcut, uninstaller, data pengguna tidak dihapus), dan
 `PANDUAN-PENERIMA.md` (ikut terpasang sebagai "Panduan Daily App").
 
 Catatan: installer tidak ditandatangani sertifikat, jadi Windows SmartScreen menampilkan
-peringatan (penerima klik **More info → Run anyway**). LibreOffice & Ghostscript tidak ikut
-installer. Notifikasi pop-up pengingat Catatan bisa tidak muncul di jendela aplikasi
-(lencana jumlah tetap tampil).
+peringatan (penerima klik **More info → Run anyway**). Notifikasi pop-up pengingat Catatan bisa
+tidak muncul di jendela aplikasi (lencana jumlah tetap tampil).
+
+Memori (diukur di i5-7200U, RAM 12 GB): aplikasi diam ±380 MB; tiap sticky +30–50 MB; Office
+ke PDF +100–370 MB sementara (proses LibreOffice); Hapus Background dan LaMa memakai arena
+onnxruntime nonaktif dan dilepas setelah 10 menit menganggur (`AI_IDLE_RELEASE_SECONDS`).
 
 ---
 
@@ -230,42 +272,45 @@ installer. Notifikasi pop-up pengingat Catatan bisa tidak muncul di jendela apli
 4. **PDF ke Word**: pilih satu `.pdf`, **Proses** → unduh `.docx`.
 5. **Batch**: pada tool gambar, pilih beberapa file sekaligus → hasil otomatis berupa
    `.zip`.
-6. **Office ke PDF**: bila LibreOffice belum terpasang, tool menampilkan badge
-   *"perlu setup"* dan pesan cara instalasi (perilaku yang diharapkan).
+6. **Office ke PDF**: pilih `.docx`, **Proses** → unduh PDF. Bila LibreOffice tidak ada (tanpa
+   `vendor/` dan tanpa instalasi), tool menampilkan badge *"perlu setup"* (perilaku yang diharapkan).
 7. **Hapus Watermark**: klik kartunya (membuka halaman kanvas), pilih gambar, **sapukan
    kuas** menutupi watermark, lalu **Proses** → muncul pratinjau *sebelum/sesudah* + unduh.
-   Coba juga **Engine → LaMa (AI)** untuk hasil lebih halus (unduh model ~208MB sekali).
+   Coba juga **Engine → LaMa (AI)** untuk hasil lebih halus (pemakaian pertama memuat model 1–2 menit).
 8. **Invoice Generator**: buka **🧾 Invoice** → tab **Brand** → **➕ Tambah Brand**, isi nama
    usaha + rekening + prefix, klik **Contoh PDF** pada beberapa desain. Tambah brand kedua
    dengan prefix lain. Lalu tab **Invoice** → **➕ Buat Invoice**, pilih brand, isi klien +
    item, coba diskon/PPN → **👁️ Pratinjau PDF** → **💾 Simpan**. Ganti brand di form →
    nomor & desain ikut berubah. Coba **📋 duplikat** (nomor naik ke `002/…` di brand yang
    sama) dan **✅ tandai lunas** (PDF bercap LUNAS).
+9. **Sticky note** (jalankan `python desktop.py`, bukan `run.py`; butuh `pywebview`, sudah ada di
+   `requirements.txt` untuk Windows): di **Catatan**, seret kartu (pegangan ⋮⋮ di samping judul)
+   keluar jendela → sticky muncul di bawah kursor. Edit isinya → halaman Catatan ikut berubah.
+   Tutup jendela utama → sticky tetap ada, ikon Daily App di tray. Jalankan `python desktop.py`
+   lagi → jendela utama muncul kembali. Keluar lewat tray, lalu `python desktop.py --startup` →
+   hanya sticky yang muncul.
 
 ---
 
 ## 🔧 Dependency Eksternal
 
-Dependency ini **bukan** paket pip; instal manual bila ingin memakai tool terkait.
+Program ini **bukan** paket pip. Installer menyertakan semuanya lewat `vendor/`; urutan
+pencarian di `app/utils.py`: `vendor/` → PATH → lokasi instalasi umum.
 
-### LibreOffice — wajib untuk "Office ke PDF"
-- **Windows**: unduh di <https://www.libreoffice.org/download/>, instal seperti biasa.
-  Aplikasi akan otomatis mencari `soffice.exe` di lokasi instalasi umum
-  (`C:\Program Files\LibreOffice\program\`).
-- **macOS**: instal LibreOffice.app ke folder Applications.
-- **Linux**: `sudo apt install libreoffice` (atau paket distro Anda).
+### LibreOffice — untuk "Office ke PDF"
+- **Windows**: `winget install TheDocumentFoundation.LibreOffice` (atau unduh di
+  <https://www.libreoffice.org/download/>). Dibutuhkan juga untuk membuat `vendor/`.
+- **macOS**: instal LibreOffice.app ke folder Applications. **Linux**: `sudo apt install libreoffice`.
+- Daily App memakai profil LibreOffice sendiri (`-env:UserInstallation`, folder `lo/` di data
+  pengguna, path pendek karena path panjang membuat soffice crash) dan menjalankan satu
+  konversi per waktu (konversi paralel pada profil yang sama gagal).
 
-Jika setelah instal masih tidak terdeteksi, pastikan `soffice` ada di PATH, lalu jalankan
-ulang `python run.py`.
-
-### Ghostscript — opsional untuk "Compress PDF" metode Maksimal
-Metode **Cepat** (pikepdf) selalu tersedia tanpa instalasi tambahan. Untuk hasil
-kompresi lebih agresif (terutama PDF berisi banyak gambar), gunakan metode **Maksimal**
-yang memerlukan Ghostscript:
-- **Windows**: unduh di <https://ghostscript.com/releases/gsdnld.html> (pilih versi 64-bit).
-  Aplikasi mencari `gswin64c`.
-- **macOS**: `brew install ghostscript`
-- **Linux**: `sudo apt install ghostscript`
+### Ghostscript — untuk "Compress PDF" metode Maksimal
+Metode **Cepat** (pikepdf) selalu tersedia. Metode **Maksimal** memerlukan Ghostscript:
+- **Windows**: `winget install ArtifexSoftware.GhostScript` (versi 64-bit; dibutuhkan juga untuk
+  membuat `vendor/`). **macOS**: `brew install ghostscript`. **Linux**: `sudo apt install ghostscript`.
+- Ghostscript bawaan dijalankan dengan `GS_LIB` menunjuk ke foldernya sendiri agar tidak membaca
+  file init dari Ghostscript lain yang terpasang.
 
 ---
 
@@ -279,7 +324,9 @@ Daily App/
 ├── PANDUAN-PENERIMA.md     # Panduan singkat untuk penerima installer
 ├── DESIGN.md               # Arah desain (gaya konsol), palet, dial, alasan keputusan
 ├── anti-slop/              # Audit & laporan Delivery Gate antislop
-├── packaging/              # daily_app.spec (PyInstaller) + installer.iss (Inno Setup)
+├── packaging/              # daily_app.spec (PyInstaller), installer.iss (Inno Setup),
+│                           # siapkan_vendor.py (isi folder vendor/)
+├── vendor/                 # LibreOffice, Ghostscript, model AI untuk installer — gitignored
 ├── requirements.txt        # Dependency Python
 ├── README.md
 │
@@ -292,7 +339,9 @@ Daily App/
 │   ├── cleanup.py          # Pembersihan file sementara otomatis
 │   ├── utils.py            # Helper (simpan upload, zip, deteksi dependency)
 │   ├── notes_store.py      # ★ Penyimpanan Catatan & Pengingat (data/notes.json)
-│   ├── notes_routes.py     # ★ Route halaman + API Catatan & Pengingat
+│   ├── notes_routes.py     # ★ Route halaman + API Catatan & Pengingat (+ halaman sticky)
+│   ├── sticky_store.py     # Status sticky note di desktop (data/stickies.json)
+│   ├── desktop_shell.py    # Jendela desktop: utama, sticky, tray, single-instance
 │   ├── invoice_store.py    # ★ Penyimpanan Invoice (brand, klien, invoice, penomoran, migrasi)
 │   ├── invoice_routes.py   # ★ Route halaman + API Invoice Generator (brand, logo, PDF)
 │   ├── invoice_format.py   # Format Rupiah, tanggal Indonesia, terbilang, romawi
@@ -314,17 +363,19 @@ Daily App/
 │   ├── watermark_remove.py # Halaman kustom (custom_url) → /watermark
 │   └── _lama.py            # Engine LaMa (ONNX) — bukan Tool (diawali _ = tak auto-import)
 │
-├── templates/              # HTML (Jinja2 + Tailwind via CDN)
+├── templates/              # HTML (Jinja2 + Tailwind lokal dari static/vendor/)
 │   ├── base.html
 │   ├── dashboard.html      # Daftar tool — terisi OTOMATIS dari registry
 │   ├── tool.html           # Halaman generik 1 tool (form dari metadata tool)
 │   ├── watermark.html      # Halaman kustom Hapus Watermark (editor kanvas)
+│   ├── sticky.html         # Isi jendela sticky note (mandiri, tanpa base.html)
 │   └── invoice.html        # Halaman Invoice Generator (+ sketsa thumbnail desain)
 │
 ├── static/
 │   ├── app.js              # JS vanilla: upload, status, download
 │   ├── watermark.js        # JS editor kanvas Hapus Watermark
-│   ├── notes.js            # JS Catatan & Pengingat (CRUD + render)
+│   ├── notes.js            # JS Catatan & Pengingat (CRUD + render + seret jadi sticky)
+│   ├── sticky.js           # JS + CSS jendela sticky note (sticky.css)
 │   ├── invoice.js          # JS Invoice Generator (form, kalkulasi live, klien, brand)
 │   ├── theme.js            # Token warna tema konsol (konfigurasi Tailwind)
 │   ├── console.css         # Gaya tema konsol: rail tile, cincin fokus, ikon
@@ -340,10 +391,13 @@ Daily App/
 │
 ├── data/                   # Data PERMANEN (TIDAK dibersihkan)
 │   ├── notes.json          # Catatan & pengingat
+│   ├── stickies.json       # Posisi/warna sticky note di desktop
 │   ├── invoices.json       # Brand, klien, & invoice
 │   └── invoice_assets/     # Logo tiap brand (logo_<brand-id>.png)
 │
-└── models/                 # Model AI diunduh sekali (lama_fp32.onnx ~208MB) — gitignored
+├── lo/                     # Profil LibreOffice milik Daily App — gitignored
+│
+└── models/                 # Model AI unduhan mode pengembang tanpa vendor/ — gitignored
 ```
 
 ---
@@ -465,8 +519,12 @@ kanvas mengirim **gambar + mask** ke `/api/tool/watermark-remove/process`.
 
 - **Browser tidak terbuka otomatis** → buka manual `http://localhost:8000`.
 - **Port 8000 dipakai aplikasi lain** → ubah `PORT` di `app/config.py`.
-- **"Office ke PDF" gagal / badge perlu setup** → pastikan LibreOffice terpasang & tidak
-  ada file Office yang sedang dibuka aplikasi lain.
-- **"Hapus Background" lama / gagal di pemakaian pertama** → butuh internet sekali untuk
-  unduh model AI (~170MB). Setelah itu jalan offline.
+- **"Office ke PDF" gagal / badge perlu setup** → pasang LibreOffice (dipakai langsung, dan juga
+  syarat untuk membuat `vendor/`), pastikan file tidak sedang dibuka aplikasi lain.
+  `packaging\siapkan_vendor.py --uji` menguji salinan di `vendor/`.
+- **"Hapus Background" gagal di mode pengembang tanpa `vendor/`** → butuh internet sekali untuk
+  unduh model AI (~176MB ke `~/.u2net`). Setelah itu jalan offline.
+- **LaMa lama di pemakaian pertama** → memuat model 40–100 detik di CPU lama, juga setelah model
+  dilepas karena 10 menit tidak dipakai. Di mode pengembang tanpa `vendor/`, pemakaian pertama juga
+  mengunduh ~208 MB.
 - **HEIC tidak terbaca** → pastikan `pillow-heif` terpasang (`pip install pillow-heif`).

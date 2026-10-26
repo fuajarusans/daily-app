@@ -4,6 +4,9 @@
 ; Installer per-pengguna: tidak butuh hak admin, terpasang di
 ; %LOCALAPPDATA%\Programs\Daily App. Data pengguna ada di %LOCALAPPDATA%\DailyApp
 ; dan TIDAK dihapus saat uninstall.
+; Installer lengkap: folder ..\vendor (LibreOffice, Ghostscript, model AI) ikut dipasang,
+; jadi setelah instal tidak ada yang perlu diunduh. Siapkan dulu dengan
+; packaging\siapkan_vendor.py (otomatis lewat "Build Installer.bat").
 
 #ifndef AppVersion
   #define AppVersion "1.0.0"
@@ -48,7 +51,7 @@ ButtonNo=&Tidak
 ButtonFinish=&Selesai
 ButtonBrowse=&Telusuri...
 WelcomeLabel1=Selamat datang di instalasi [name]
-WelcomeLabel2=[name/ver] akan dipasang di komputer ini.%n%nData Anda (catatan, brand, invoice) disimpan terpisah dan tetap aman saat memperbarui versi.
+WelcomeLabel2=[name/ver] akan dipasang di komputer ini.%n%nSemua komponen sudah termasuk (konverter dokumen LibreOffice, Ghostscript, dan model AI), jadi tidak ada yang perlu diunduh setelah instalasi.%n%nData Anda (catatan, brand, invoice) disimpan terpisah dan tetap aman saat memperbarui versi.
 WizardSelectDir=Pilih lokasi instalasi
 SelectDirDesc=Di mana [name] akan dipasang?
 SelectDirLabel3=[name] akan dipasang di folder berikut.
@@ -86,19 +89,36 @@ LicenseNotAccepted=Saya &tidak menyetujui
 AdditionalIcons=Shortcut tambahan:
 CreateDesktopIcon=Buat shortcut di &Desktop
 LaunchProgram=Jalankan %1
+WarmupStatus=Menyiapkan konverter dokumen (sekitar setengah menit)...
+StartupGroup=Sticky note:
+StartupTask=Tampilkan sticky note saat Windows &menyala (hanya bila ada sticky di desktop)
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "startup"; Description: "{cm:StartupTask}"; GroupDescription: "{cm:StartupGroup}"
 
 [Files]
 Source: "..\dist\DailyApp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\PANDUAN-PENERIMA.md"; DestDir: "{app}"; DestName: "Panduan Daily App.txt"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\NOTICE.md"; DestDir: "{app}"; DestName: "Hak Cipta dan Lisensi.txt"; Flags: ignoreversion
+; Komponen bawaan (folder vendor). Model ONNX hampir tidak bisa dikompres (~8%):
+; tanpa kompresi agar build & instalasi lebih cepat.
+Source: "..\vendor\libreoffice\*"; DestDir: "{app}\vendor\libreoffice"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\vendor\ghostscript\*"; DestDir: "{app}\vendor\ghostscript"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\vendor\models\*.onnx"; DestDir: "{app}\vendor\models"; Flags: ignoreversion nocompression
+Source: "..\vendor\LICENSES\*"; DestDir: "{app}\vendor\LICENSES"; Flags: ignoreversion
+Source: "..\vendor\manifest.json"; DestDir: "{app}\vendor"; Flags: ignoreversion
 
 [InstallDelete]
 ; Bersihkan sisa versi lama agar modul yang sudah dihapus tidak tertinggal.
 Type: filesandordirs; Name: "{app}\_internal"
+Type: filesandordirs; Name: "{app}\vendor"
+; Model LaMa yang dulu diunduh saat pemakaian pertama (versi <= 1.2): sudah ikut installer.
+Type: files; Name: "{localappdata}\DailyApp\models\lama_fp32.onnx"
+; Pilihan yang tidak dicentang saat instal ulang/update: hapus shortcut dari instalasi lama.
+Type: files; Name: "{userstartup}\Daily App (sticky note).lnk"; Tasks: not startup
+Type: files; Name: "{autodesktop}\Daily App.lnk"; Tasks: not desktopicon
 
 [Icons]
 Name: "{group}\Daily App"; Filename: "{app}\DailyApp.exe"
@@ -106,8 +126,12 @@ Name: "{group}\Panduan Daily App"; Filename: "{app}\Panduan Daily App.txt"
 Name: "{group}\Hak Cipta dan Lisensi"; Filename: "{app}\Hak Cipta dan Lisensi.txt"
 Name: "{group}\Hapus Daily App"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Daily App"; Filename: "{app}\DailyApp.exe"; Tasks: desktopicon
+; Saat login: desktop.py --startup langsung keluar bila tidak ada sticky yang perlu dipulihkan.
+Name: "{userstartup}\Daily App (sticky note)"; Filename: "{app}\DailyApp.exe"; Parameters: "--startup"; Tasks: startup
 
 [Run]
+; Profil LibreOffice disiapkan sekarang agar konversi Office ke PDF pertama tidak lambat/gagal.
+Filename: "{app}\DailyApp.exe"; Parameters: "--warmup"; StatusMsg: "{cm:WarmupStatus}"; Flags: runhidden waituntilterminated
 Filename: "{app}\DailyApp.exe"; Description: "{cm:LaunchProgram,Daily App}"; Flags: nowait postinstall skipifsilent
 
 [Code]

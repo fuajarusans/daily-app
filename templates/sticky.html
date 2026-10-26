@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sticky · Daily App</title>
+<!-- Halaman mandiri (tanpa base.html/Tailwind): tiap sticky adalah jendela sendiri, jadi dibuat seringan mungkin. -->
+<link rel="stylesheet" href="/static/sticky.css?v={{ app_version }}">
+</head>
+<body>
+<div class="sticky" id="sticky">
+  <header class="bar pywebview-drag-region" title="Seret untuk memindahkan">
+    <span class="cat" id="cat">{{ icon('notes') }}<span id="catLabel">Catatan</span></span>
+    <div class="tools">
+      <button type="button" class="tb" id="btnTop" aria-pressed="false" title="Selalu di atas" aria-label="Selalu di atas">{{ icon('pinned') }}</button>
+      <button type="button" class="tb" id="btnColor" aria-expanded="false" aria-controls="palette" title="Warna" aria-label="Ganti warna">{{ icon('palette') }}</button>
+      <button type="button" class="tb" id="btnApp" title="Buka di Daily App" aria-label="Buka di Daily App">{{ icon('app-window') }}</button>
+      <button type="button" class="tb" id="btnClose" title="Lepas dari desktop" aria-label="Lepas dari desktop">{{ icon('x') }}</button>
+    </div>
+  </header>
+  <div class="palette" id="palette" role="group" aria-label="Warna sticky" hidden>
+    {% for c in colors %}<button type="button" class="sw" data-color="{{ c.id }}" style="--sw: {{ c.bg }}" title="{{ c.label }}" aria-label="Warna {{ c.label }}" aria-pressed="false"></button>{% endfor %}
+  </div>
+  <main class="body">
+    <input id="title" class="title" type="text" maxlength="200" placeholder="Judul" aria-label="Judul catatan" autocomplete="off">
+    <textarea id="text" class="text" placeholder="Tulis catatan…" aria-label="Isi catatan"></textarea>
+  </main>
+  <footer class="foot">
+    <button type="button" class="done" id="btnDone">{{ icon('check') }}<span id="doneLabel">Selesai</span></button>
+    <span class="due" id="due" hidden></span>
+    <span class="saved" id="saved" role="status" aria-live="polite"></span>
+    <span class="grip" id="grip" title="Seret untuk mengubah ukuran" aria-hidden="true"></span>
+  </footer>
+</div>
+<script>window.STICKY = {{ {"id": note_id, "sticky": sticky, "colors": colors, "categories": categories}|tojson }};</script>
+<script src="/static/sticky.js?v={{ app_version }}"></script>
+</body>
+</html>

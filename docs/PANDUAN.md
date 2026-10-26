@@ -1,23 +1,24 @@
 # 📘 Panduan Pemakaian & Update — Daily App
 
 Panduan praktis sehari-hari. Untuk dokumentasi teknis lengkap (instalasi awal,
-arsitektur, cara membuat tool baru), lihat [README.md](PENGEMBANG.md).
+arsitektur, cara membuat tool baru), lihat [PENGEMBANG.md](PENGEMBANG.md).
 
 ---
 
 ## ▶️ Menjalankan & Menghentikan Aplikasi
 
 ### 🖱️ Cara termudah (tanpa PowerShell) — klik dua kali
-- **Menjalankan:** klik dua kali pintasan **"Daily App"** di Desktop (atau berkas
-  **`Jalankan Daily App.bat`** di folder proyek). Sebuah jendela hitam akan terbuka dan
+- **Menjalankan:** klik dua kali berkas **`Jalankan Daily App.bat`** di folder proyek (atau
+  pintasan Desktop ke berkas itu). Sebuah jendela hitam akan terbuka dan
   **browser otomatis** menuju `http://localhost:8000`. Biarkan jendela hitam itu tetap
   terbuka selama memakai aplikasi.
 - **Menghentikan:** cukup **tutup jendela hitam** tadi (atau tekan **CTRL + C** di
   dalamnya). Bila jendelanya telanjur hilang dan aplikasi masih berjalan, klik dua kali
   **`Hentikan Daily App.bat`** di folder proyek.
 
-> Pintasan Desktop bernama **"Daily App"**. Jika terhapus, jalankan saja
-> `Jalankan Daily App.bat` di folder proyek (atau buat ulang pintasannya).
+> Pintasan Desktop **"Daily App"** buatan installer membuka aplikasi terpasang (jendela sendiri),
+> bukan mode pengembang ini, dan installer menimpa pintasan lain dengan nama yang sama. Beri
+> pintasan ke `Jalankan Daily App.bat` nama lain, mis. **"Daily App (pengembang)"**.
 
 ### ⌨️ Cara alternatif (lewat PowerShell)
 Buka **PowerShell** di folder proyek ini, lalu jalankan:
@@ -41,7 +42,7 @@ Buka **PowerShell** di folder proyek ini, lalu jalankan:
 Buka manual di browser: **http://localhost:8000**
 
 ### Kalau port 8000 sedang dipakai
-Ubah angka `PORT` di file [app/config.py](app/config.py), simpan, lalu jalankan ulang.
+Ubah angka `PORT` di file [app/config.py](../app/config.py), simpan, lalu jalankan ulang.
 
 ---
 
@@ -79,27 +80,29 @@ Semua tool memakai pola yang sama:
   ke latar putih). Nama file hasil memuat ukuran tercapai, mis. `foto_142KB.jpg`. Biarkan
   target = **0** untuk memakai slider Kualitas seperti biasa.
 - **Compress PDF** — metode **Cepat** selalu bisa dipakai. Metode **Maksimal**
-  (lebih kecil, terutama untuk PDF berisi banyak gambar) memakai **Ghostscript yang
-  sudah terpasang** di komputer ini, jadi langsung bisa digunakan. Pilih preset
-  *screen* (paling kecil), *ebook* (seimbang), atau *printer* (kualitas tinggi).
-- **Hapus Background** — **pemakaian pertama** mengunduh model AI (~170 MB), jadi
-  butuh internet **sekali saja** dan terasa lebih lama. Setelah itu jalan offline.
-- **Office ke PDF** — memakai LibreOffice. Pastikan file Office yang akan dikonversi
-  **tidak sedang dibuka** di aplikasi lain.
+  (lebih kecil, terutama untuk PDF berisi banyak gambar) memakai **Ghostscript** dari folder
+  `vendor/` (bila sudah dibuat) atau yang terpasang di komputer ini. Pilih preset
+  *screen* (paling kecil), *ebook* (seimbang), atau *printer* (kualitas tinggi). Hasil tidak
+  pernah lebih besar dari aslinya: bila tidak bisa dikecilkan, file asli yang dikembalikan.
+- **Hapus Background** — model AI dibaca dari `vendor/models`. Tanpa folder `vendor/`,
+  **pemakaian pertama** mengunduh model (~176 MB), butuh internet **sekali saja**.
+- **Office ke PDF** — memakai LibreOffice (`vendor/` atau yang terpasang) dengan profil milik
+  Daily App, satu file per waktu. Pastikan file yang akan dikonversi **tidak sedang dibuka**
+  di aplikasi lain.
 - **Convert Gambar** — mendukung HEIC (foto iPhone) berkat pillow-heif.
 - **Hapus Watermark** — memakai **halaman kanvas** (bukan form biasa): unggah gambar,
   **sapukan kuas** atau **tarik kotak** menutupi watermark (tanda merah = area yang akan
   dihapus), lalu **Proses** → tampil pratinjau *sebelum/sesudah* + tombol unduh. Tersedia
   **↩️ Undo**, **🗑️ Bersihkan**, dan pengatur **ukuran kuas**. Pilih **Engine**: **OpenCV**
   (cepat & ringan, pas untuk teks/logo kecil) atau **LaMa (AI)** (lebih halus untuk objek/area
-  besar — **pemakaian pertama mengunduh model ~208 MB**, butuh internet sekali lalu offline).
+  besar — model dari `vendor/models`; **pemakaian pertama memuat model 1–2 menit** di laptop lama).
   Gunakan hanya pada gambar yang Anda berhak menyuntingnya.
 
 ---
 
 ## 📝 Catatan & Pengingat
 
-Buka lewat menu **📝 Catatan** di kanan atas, atau kartu **Catatan & Pengingat** di dashboard.
+Buka lewat menu **📝 Catatan** di bilah menu atas (sebelah logo **Daily App**), atau kartu **Catatan & Pengingat** di dashboard.
 
 **Menambah:** klik **➕ Tambah Catatan**, isi judul / isi, pilih **Kategori** (Umum, Tugas,
 Dokumen, Klien, Jadwal, Ide), lalu (opsional) **tag**, **tanggal jatuh tempo**, dan
@@ -123,7 +126,7 @@ aplikasi terbuka, pop-up muncul untuk catatan yang lewat tempo / jatuh tempo har
 
 ## 🧾 Invoice Generator
 
-Buka lewat menu **🧾 Invoice** di kanan atas, atau kartu **Invoice Generator** di dashboard.
+Buka lewat menu **🧾 Invoice** di bilah menu atas (sebelah logo **Daily App**), atau kartu **Invoice Generator** di dashboard.
 
 **1. Siapkan brand (tab Brand):** klik **➕ Tambah Brand** untuk setiap brand/usaha yang
 Anda kelola. Isi nama, alamat, telepon/email, NPWP (opsional), **logo** (PNG transparan
@@ -189,11 +192,12 @@ Memperbarui satu library tertentu saja, contoh:
 Setelah update, **jalankan ulang** aplikasi (lihat bagian D).
 
 ### B. Update program eksternal (LibreOffice / Ghostscript)
-Lewat winget:
+Lewat winget, lalu bangun ulang folder `vendor/` agar installer berikutnya membawa versi baru:
 
 ```powershell
 winget upgrade --id TheDocumentFoundation.LibreOffice
-winget upgrade --id Python.Python.3.12
+winget upgrade --id ArtifexSoftware.GhostScript
+.\.venv\Scripts\python.exe packaging\siapkan_vendor.py --paksa --uji
 ```
 
 ### C. Update kode aplikasi atau menambah/mengubah tool
@@ -201,7 +205,7 @@ winget upgrade --id Python.Python.3.12
   perubahan **baru aktif setelah server dijalankan ulang**.
 - Menambah tool baru cukup membuat satu file di folder `tools/`; dashboard akan
   menampilkannya otomatis. Langkah & template lengkap ada di
-  [README.md](PENGEMBANG.md#-cara-menambah-tool-baru).
+  [PENGEMBANG.md](PENGEMBANG.md#-cara-menambah-tool-baru).
 
 ### D. Menjalankan ulang setelah update
 1. Hentikan server: **CTRL + C** di jendela PowerShell-nya.
@@ -221,11 +225,11 @@ winget upgrade --id Python.Python.3.12
 |--------|--------|
 | Halaman tidak terbuka / "tidak bisa dijangkau" | Pastikan server berjalan; jalankan `.\.venv\Scripts\python.exe run.py` |
 | Tool baru / perubahan kode tidak muncul | Jalankan ulang server (CTRL+C lalu jalankan lagi) |
-| Office→PDF "perlu setup" | Pastikan LibreOffice terpasang, lalu refresh halaman |
+| Office→PDF "perlu setup" | Pasang LibreOffice, lalu refresh halaman (folder `vendor/` juga dipakai bila ada, tetapi membuatnya lewat `packaging\siapkan_vendor.py` butuh LibreOffice terpasang) |
 | Compress PDF "Maksimal" gagal | Pilih metode "Cepat", atau pasang Ghostscript |
-| Hapus Background lama/gagal di awal | Butuh internet sekali untuk unduh model ~170 MB |
+| Hapus Background lama/gagal di awal (tanpa `vendor/`) | Butuh internet sekali untuk unduh model ~176 MB |
 | Hapus Watermark hasil buram/"smudge" | Tutup penuh watermark & kuas lebih rapat; coba engine **LaMa** untuk area besar; (OpenCV) kecilkan radius atau pakai Navier-Stokes |
-| Hapus Watermark (LaMa) lama di awal | Normal — pemakaian pertama mengunduh model ~208 MB (butuh internet sekali); setelah itu cepat & offline |
+| Hapus Watermark (LaMa) lama di awal | Normal — pemakaian pertama memuat model AI (1–2 menit di laptop lama); setelah itu lebih cepat. Model dilepas dari memori setelah 10 menit tidak dipakai |
 | Hasil unduhan hilang | Normal — file dibersihkan otomatis setelah 1 jam |
 | Catatan hilang? | Tidak — catatan permanen di `data/notes.json` (beda dengan file hasil tool) |
 | Pengingat/notifikasi tak muncul | Klik **🔔 Aktifkan pengingat** & izinkan di browser; notifikasi hanya tampil saat aplikasi terbuka |

@@ -14,6 +14,10 @@
   </div>
 </div>
 <p class="text-slate-600 mb-5">Simpan catatan &amp; tugas, kelompokkan per kategori, dan dapatkan pengingat saat mendekati jatuh tempo.</p>
+<p id="stickyTip" class="text-sm text-slate-600 -mt-3 mb-5 flex items-center gap-2" hidden>
+  {{ icon('note') }} Seret kartu keluar dari jendela, atau klik ikon catatan di kartu, untuk menempelkannya di desktop.
+</p>
+<div id="dragHint" class="drag-hint" role="status" hidden>Seret sampai keluar jendela untuk menempel di desktop</div>
 
 <!-- Tombol buka form -->
 <button id="btnNew" type="button"

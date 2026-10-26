@@ -285,7 +285,7 @@
         processBtn.textContent = "Memproses…";
         const lama = engineSel.value === "lama";
         const wait = lama
-            ? "Memproses dengan LaMa… (pemakaian pertama mengunduh model ~208 MB, bisa beberapa menit)"
+            ? "Memproses dengan LaMa… (bila model AI belum dimuat, bisa 1–2 menit)"
             : "Sedang memproses…";
         showStatus('<div class="flex items-center gap-2">' + DailyIcon("loader-2", "animate-spin") + " " + wait + "</div>",
             "bg-blue-50 border border-blue-200 text-blue-800");

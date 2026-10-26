@@ -6,12 +6,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+from urllib.parse import urlsplit
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 # request.form() menghasilkan starlette.datastructures.UploadFile; fastapi.UploadFile
 # adalah subclass-nya, jadi cek isinstance harus pakai kelas Starlette agar cocok.
 from starlette.datastructures import UploadFile
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app import cleanup, config, invoice_routes, notes_routes, utils, watermark_routes
 from app.registry import ToolError, all_tools, get_tool
@@ -34,6 +37,26 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Daily App", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.STATIC_DIR), name="static")
+
+# Server lokal tanpa login di port tetap: tolak permintaan yang Host-nya bukan komputer ini
+# (serangan DNS rebinding dari situs lain di browser).
+_LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=sorted(_LOCAL_HOSTS))
+
+
+@app.middleware("http")
+async def local_only_and_fresh(request: Request, call_next):
+    # Situs lain di browser tidak boleh mengubah data (POST/PUT/DELETE lintas origin).
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        origin = request.headers.get("origin")
+        if origin and urlsplit(origin).hostname not in _LOCAL_HOSTS:
+            return JSONResponse({"error": "Permintaan ditolak."}, status_code=403)
+    response = await call_next(request)
+    # Port aplikasi kini tetap, jadi cache WebView2 bertahan antarversi: minta browser
+    # selalu memvalidasi berkas statis (ETag) agar versi baru langsung terpakai.
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 # Fitur Catatan & Pengingat (halaman + API CRUD)
 app.include_router(notes_routes.router)

@@ -50,11 +50,25 @@ pembuatnya, di bawah lisensinya sendiri.
 | Tabler Icons 3.31.0 | MIT | Ikon (`static/vendor/tabler-icons-LICENSE.txt`) |
 | Python 3.12 | PSF License | Runtime |
 
-Model AI yang diunduh saat dipakai (tidak ikut installer): U²-Net untuk rembg (Apache-2.0)
-dan LaMa (Apache-2.0).
+### Komponen bawaan installer (folder `vendor`)
 
-Program luar yang tidak ikut installer dan dipasang sendiri oleh pengguna: LibreOffice (MPL-2.0)
-dan Ghostscript (AGPL-3.0).
+Sejak versi 1.3.0 installer menyertakan program dan model berikut sehingga tidak ada yang
+perlu diunduh setelah instalasi. Versi persisnya tercatat di `vendor\manifest.json`. Teks
+lisensi model AI ada di `vendor\LICENSES`; teks lisensi LibreOffice dan Ghostscript ada di folder
+masing-masing (lihat tabel).
+
+| Komponen | Lisensi | Dipakai untuk | Kode sumber |
+|---|---|---|---|
+| LibreOffice (The Document Foundation) | MPL-2.0, plus lisensi komponennya (`vendor\libreoffice\LICENSE.html`, `NOTICE`) | Office ke PDF | https://download.documentfoundation.org/libreoffice/src/ |
+| Ghostscript (Artifex Software) | AGPL-3.0 (`vendor\ghostscript\COPYING`) | Kompres PDF metode Maksimal | https://github.com/ArtifexSoftware/ghostpdl-downloads/releases |
+| Model U²-Net `u2net.onnx` (Xuebin Qin dkk., lewat rembg) | Apache-2.0 | Hapus background | https://github.com/xuebinqin/U-2-Net |
+| Model LaMa `lama_fp32.onnx` (advimman/lama; ekspor ONNX Carve/LaMa-ONNX) | Apache-2.0 | Hapus watermark engine LaMa | https://github.com/advimman/lama |
+| Runtime Microsoft Visual C++ 2015-2022 (DLL) | Lisensi Microsoft Visual C++ Redistributable | Dibutuhkan LibreOffice & Ghostscript | — |
+
+LibreOffice dipakai tanpa perubahan kode; bagian yang tidak diperlukan untuk konversi
+(bantuan, kamus, galeri, templat, Java, Python) tidak disertakan. "LibreOffice" adalah merek
+dagang terdaftar The Document Foundation. Daily App memakai LibreOffice dan tidak berafiliasi
+dengan The Document Foundation.
 
 "PlayStation" adalah merek dagang Sony Interactive Entertainment. Daily App hanya terinspirasi
 tata letak layar berandanya dan tidak memakai logo, ikon, font, atau suara milik Sony.

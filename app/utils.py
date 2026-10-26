@@ -1,15 +1,20 @@
 """Fungsi bantu: simpan upload, buat zip, deteksi dependency eksternal."""
 from __future__ import annotations
 
+import logging
+import os
 import re
 import shutil
 import sys
 import subprocess
+import tempfile
+import threading
 import time
 import uuid
 import zipfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import UploadFile
 
@@ -70,8 +75,17 @@ def find_executable(*candidates: str) -> Optional[str]:
     return None
 
 
+def _vendor_file(*parts: str) -> Optional[str]:
+    """Program yang ikut dibundel installer (folder vendor), bila ada."""
+    p = config.VENDOR_DIR.joinpath(*parts)
+    return str(p) if p.is_file() else None
+
+
 def find_libreoffice() -> Optional[str]:
-    """Cari 'soffice' (LibreOffice) di PATH atau lokasi umum Windows/macOS/Linux."""
+    """Cari 'soffice': bawaan installer dulu, lalu PATH atau lokasi umum Windows/macOS/Linux."""
+    bundled = _vendor_file("libreoffice", "program", "soffice.exe")
+    if bundled:
+        return bundled
     found = find_executable("soffice", "soffice.exe", "libreoffice")
     if found:
         return found
@@ -103,11 +117,14 @@ def _gs_version(exe: Path) -> tuple[int, ...]:
 
 
 def find_ghostscript() -> Optional[str]:
-    """Cari Ghostscript di PATH atau lokasi instalasi umum Windows.
+    """Cari Ghostscript: bawaan installer dulu, lalu PATH atau lokasi instalasi umum Windows.
 
     Setelah instal via winget, PATH proses yang sedang berjalan belum tentu
     ter-update, jadi kita juga memindai folder standar `C:\\Program Files\\gs\\`.
     """
+    bundled = _vendor_file("ghostscript", "bin", "gswin64c.exe")
+    if bundled:
+        return bundled
     found = find_executable("gs", "gswin64c", "gswin64c.exe", "gswin32c", "gswin32c.exe")
     if found:
         return found
@@ -124,3 +141,127 @@ def find_ghostscript() -> Optional[str]:
         candidates.sort(key=_gs_version, reverse=True)
         return str(candidates[0])
     return None
+
+
+def ghostscript_env(gs_exe: str) -> Optional[dict]:
+    """Lingkungan untuk Ghostscript bundel: GS_LIB menunjuk ke foldernya sendiri agar
+    Ghostscript lain yang terpasang (registry GS_LIB, versi berbeda) tidak ikut terbaca.
+    File init sudah tertanam di gsdll64.dll."""
+    if not gs_exe.startswith(str(config.VENDOR_DIR)):
+        return None
+    return {**os.environ, "GS_LIB": str(Path(gs_exe).parent)}
+
+
+# --- LibreOffice: profil sendiri + pemanasan ------------------------------------------
+_LO_READY_MARKER = ".dailyapp-siap"
+
+
+def _short_path(path: Path) -> Path:
+    """Nama pendek 8.3 Windows untuk path panjang (folder harus sudah ada)."""
+    if sys.platform != "win32" or len(str(path)) <= 90:
+        return path
+    import ctypes
+    buf = ctypes.create_unicode_buffer(1024)
+    if ctypes.windll.kernel32.GetShortPathNameW(str(path), buf, 1024):
+        return Path(buf.value)
+    return path
+
+
+def libreoffice_profile_arg() -> str:
+    """Argumen -env:UserInstallation ke profil Daily App.
+
+    Profil terpisah membuat konversi tidak bentrok dengan LibreOffice yang sedang dibuka
+    pengguna. Root profil harus pendek (< ~115 karakter): berkas terdalam di dalam profil
+    menambah ~140 karakter, dan path > 260 karakter membuat soffice crash (0xC0000409).
+    """
+    config.LIBREOFFICE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    return "-env:UserInstallation=" + _short_path(config.LIBREOFFICE_PROFILE_DIR.resolve()).as_uri()
+
+
+# Satu konversi LibreOffice dalam satu waktu: konversi paralel pada profil yang sama gagal.
+LIBREOFFICE_LOCK = threading.Lock()
+
+
+def run_libreoffice_convert(soffice: str, src: Path, outdir: Path, fmt: str = "pdf",
+                            timeout: int = 300) -> Optional[Path]:
+    """Konversi satu file dengan LibreOffice headless; kembalikan path hasil atau None.
+
+    Pada profil baru, konversi pertama kadang selesai tanpa menghasilkan file (rc 0),
+    jadi dicoba sekali lagi bila hasilnya tidak ada.
+    """
+    out = outdir / f"{src.stem}.{fmt}"
+    cmd = [soffice, libreoffice_profile_arg(), "--headless", "--norestore",
+           "--convert-to", fmt, "--outdir", str(outdir), str(src)]
+    with LIBREOFFICE_LOCK:
+        for _ in range(2):
+            subprocess.run(cmd, check=True, capture_output=True, timeout=timeout, **no_window())
+            if out.exists():
+                return out
+    return None
+
+
+def libreoffice_ready() -> bool:
+    return (config.LIBREOFFICE_PROFILE_DIR / _LO_READY_MARKER).is_file()
+
+
+def warm_libreoffice(attempts: int = 3) -> bool:
+    """Siapkan profil LibreOffice dengan konversi kecil (dipanggil saat instal/start).
+
+    Konversi pertama pada profil baru lambat (20-30 detik) dan kadang tidak menghasilkan
+    file; setelah profil siap, konversi berikutnya 2-5 detik.
+    """
+    soffice = find_libreoffice()
+    if not soffice:
+        return False
+    log = logging.getLogger(__name__)
+    with tempfile.TemporaryDirectory(prefix="dailyapp-lo-") as tmp:
+        src = Path(tmp) / "siap.txt"
+        src.write_text("Daily App\n", encoding="utf-8")
+        for i in range(attempts):
+            try:
+                if run_libreoffice_convert(soffice, src, Path(tmp), timeout=180):
+                    (config.LIBREOFFICE_PROFILE_DIR / _LO_READY_MARKER).write_text(soffice, encoding="utf-8")
+                    log.info("Profil LibreOffice siap (percobaan %d)", i + 1)
+                    return True
+            except (subprocess.SubprocessError, OSError):
+                log.warning("Pemanasan LibreOffice gagal (percobaan %d)", i + 1, exc_info=True)
+    return False
+
+
+class IdleRelease:
+    """Panggil `release` bila objek tidak dipakai selama `seconds` (mis. lepas model AI).
+
+    Bungkus setiap pemakaian dengan `with idle.in_use():` — selama ada pemakaian aktif
+    pewaktu berhenti, dan baru mulai menghitung setelah pemakaian terakhir selesai.
+    """
+
+    def __init__(self, seconds: float, release: Callable[[], None]) -> None:
+        self._seconds = seconds
+        self._release = release
+        self._timer: Optional[threading.Timer] = None
+        self._active = 0
+        self._lock = threading.Lock()
+
+    def _fire(self) -> None:
+        with self._lock:
+            if self._active:
+                return
+            self._timer = None
+        self._release()
+
+    @contextmanager
+    def in_use(self):
+        with self._lock:
+            self._active += 1
+            if self._timer:
+                self._timer.cancel()
+                self._timer = None
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._active -= 1
+                if self._active == 0:
+                    self._timer = threading.Timer(self._seconds, self._fire)
+                    self._timer.daemon = True
+                    self._timer.start()

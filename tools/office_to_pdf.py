@@ -1,4 +1,8 @@
-"""Tool: Office to PDF — Word/Excel/PowerPoint -> PDF via LibreOffice headless."""
+"""Tool: Office to PDF — Word/Excel/PowerPoint -> PDF via LibreOffice headless.
+
+LibreOffice ikut installer (folder vendor); di mode pengembang dipakai LibreOffice yang
+terpasang. Konversi memakai profil LibreOffice milik Daily App dan berjalan satu per satu.
+"""
 from __future__ import annotations
 
 import subprocess
@@ -24,9 +28,8 @@ class OfficeToPdfTool(Tool):
     def check_dependencies(self) -> Optional[str]:
         if utils.find_libreoffice() is None:
             return (
-                "LibreOffice belum terpasang. Tool ini memerlukan LibreOffice. "
-                "Unduh di https://www.libreoffice.org/download/ lalu jalankan ulang "
-                "aplikasi. (Detail di README bagian Dependency Eksternal.)"
+                "Komponen LibreOffice tidak ditemukan. Pasang ulang Daily App dari installer "
+                "terbaru (LibreOffice sudah termasuk di dalamnya)."
             )
         return None
 
@@ -37,25 +40,15 @@ class OfficeToPdfTool(Tool):
 
         results: list[Path] = []
         for src in input_paths:
-            cmd = [
-                soffice,
-                "--headless",
-                "--convert-to",
-                "pdf",
-                "--outdir",
-                str(output_dir),
-                str(src),
-            ]
             try:
-                subprocess.run(cmd, check=True, capture_output=True, timeout=300, **utils.no_window())
+                out = utils.run_libreoffice_convert(soffice, src, output_dir)
             except subprocess.CalledProcessError as e:
-                msg = e.stderr.decode(errors="ignore") if e.stderr else str(e)
-                raise ToolError(f"Gagal mengonversi '{src.name}': {msg}")
+                msg = e.stderr.decode(errors="ignore").strip() if e.stderr else ""
+                raise ToolError(f"Gagal mengonversi '{src.name}'. {msg or 'Kode keluar ' + str(e.returncode)}")
             except subprocess.TimeoutExpired:
                 raise ToolError(f"Konversi '{src.name}' terlalu lama (timeout).")
 
-            out = output_dir / f"{src.stem}.pdf"
-            if not out.exists():
+            if out is None:
                 raise ToolError(
                     f"LibreOffice tidak menghasilkan PDF untuk '{src.name}'. "
                     "Pastikan file tidak rusak dan tidak sedang dibuka aplikasi lain."

@@ -11,7 +11,7 @@
 
 <p align="center">
   <!-- Ganti LINK_GOOGLE_DRIVE dengan link berbagi folder/file installer di Google Drive. -->
-  <a href="LINK_GOOGLE_DRIVE"><b>Unduh Daily App 1.2.1 untuk Windows</b></a>
+  <a href="LINK_GOOGLE_DRIVE"><b>Unduh Daily App 1.3.0 untuk Windows</b></a>
   ·
   <a href="#cara-memasang">Cara memasang</a>
   ·
@@ -28,17 +28,22 @@ ke Beranda.
 | Alat | Fungsi |
 |---|---|
 | PDF ke Word | Ubah `.pdf` menjadi `.docx` yang bisa diedit |
-| Office ke PDF | Word, Excel, PowerPoint menjadi PDF (perlu LibreOffice) |
-| Kompres PDF | Perkecil ukuran PDF; metode Maksimal perlu Ghostscript |
+| Office ke PDF | Word, Excel, PowerPoint menjadi PDF |
+| Kompres PDF | Perkecil ukuran PDF; metode Maksimal mengompres ulang gambar |
 | Ubah ukuran gambar | Skala, lebar/tinggi, atau target ukuran file (KB) |
 | Konversi gambar | PNG, JPG, JFIF, WEBP, HEIC, BMP, TIFF |
 | Hapus background | Latar belakang foto dihapus otomatis (AI) |
 | Hapus watermark | Sapukan kuas di atas watermark, lalu hapus (OpenCV atau LaMa AI) |
 | QR code | Teks atau URL menjadi gambar QR |
 | Catatan & pengingat | Catatan, tugas, tenggat, dan pengingat jatuh tempo |
+| Sticky note | Seret kartu catatan keluar jendela untuk menempelkannya di desktop |
 | Invoice | Invoice PDF untuk beberapa brand: 10 desain, nomor otomatis, klien tersimpan, PPN & diskon, terbilang |
 
 Banyak alat menerima beberapa file sekaligus; hasilnya diunduh sebagai satu `.zip`.
+
+Installer sudah menyertakan semua yang dibutuhkan: konverter dokumen (LibreOffice),
+Ghostscript, dan model AI. Setelah dipasang, tidak ada yang perlu diunduh lagi dan semua
+alat bisa dipakai tanpa internet.
 
 <table>
   <tr>
@@ -55,26 +60,31 @@ Banyak alat menerima beberapa file sekaligus; hasilnya diunduh sebagai satu `.zi
 
 ## Cara memasang
 
-1. Unduh `DailyApp-Setup-1.2.1.exe` dari link di atas.
+1. Unduh `DailyApp-Setup-1.3.0.exe` dari link di atas (sekitar 615 MB, karena semua komponen
+   sudah termasuk).
 2. Jalankan. Bila muncul layar **"Windows protected your PC"**, klik **More info**, lalu
    **Run anyway**. Peringatan ini muncul karena aplikasi belum ditandatangani sertifikat
    berbayar.
 3. Ikuti langkah instalasi (tidak perlu hak admin), lalu buka **Daily App** dari Desktop atau
    Start Menu.
 
-**Persyaratan:** Windows 10/11 64-bit. Daily App tampil sebagai jendela aplikasi memakai
-Microsoft Edge WebView2 (sudah ada di Windows 11 dan sebagian besar Windows 10).
+**Persyaratan:**
+- Windows 10/11 64-bit.
+- Ruang kosong sekitar 2 GB saat instalasi (1,4 GB setelah terpasang).
+- RAM 4 GB; 8 GB disarankan untuk Hapus Background dan Hapus Watermark LaMa.
+- Daily App tampil sebagai jendela aplikasi memakai Microsoft Edge WebView2 (sudah ada di
+  Windows 11 dan sebagian besar Windows 10).
 
-**Memeriksa keaslian file (opsional):** SHA-256 `DailyApp-Setup-1.2.1.exe`:
+**Memeriksa keaslian file (opsional):** SHA-256 `DailyApp-Setup-1.3.0.exe`:
 
 ```
-ab8ff60f61e7313b6b933472e10ffdd091c1b9ee9ca9916996252363b4217052
+f92cfd7dfeeba21fad8869cfde32103a6b644853d03401fed897c497d8128227
 ```
 
 Cek di PowerShell:
 
 ```powershell
-Get-FileHash .\DailyApp-Setup-1.2.1.exe -Algorithm SHA256
+Get-FileHash .\DailyApp-Setup-1.3.0.exe -Algorithm SHA256
 ```
 
 ## Privasi & data
@@ -83,16 +93,20 @@ Get-FileHash .\DailyApp-Setup-1.2.1.exe -Algorithm SHA256
 - Catatan, brand, klien, dan invoice tersimpan di `%LOCALAPPDATA%\DailyApp` dan tidak terhapus
   saat aplikasi diperbarui atau di-uninstall. Untuk backup, salin folder `data` di dalamnya.
 - File hasil di dalam aplikasi dihapus otomatis 1 jam setelah dibuat.
-- Internet hanya dibutuhkan sekali, saat **Hapus Background** (~170 MB) dan **Hapus Watermark
-  engine LaMa** (~208 MB) pertama kali mengunduh model AI.
+- Tidak butuh internet: model AI, LibreOffice, dan Ghostscript ikut terpasang.
 
 ## Bila ada masalah
 
-- **Office ke PDF** atau **Kompres PDF Maksimal** berlabel *perlu setup*: pasang
-  [LibreOffice](https://www.libreoffice.org/download/) atau
-  [Ghostscript](https://ghostscript.com/releases/gsdnld.html) (keduanya gratis).
-- **Proses pertama gagal lalu berhasil saat diulang:** antivirus (mis. Avast/AVG) sedang
-  memindai berkas aplikasi yang baru dipasang. Klik **Proses** sekali lagi.
+- **Office ke PDF berlabel *perlu setup*, atau Kompres PDF Maksimal gagal dengan pesan
+  "Komponen Ghostscript tidak ditemukan":** komponen bawaannya terhapus atau rusak. Pasang ulang
+  Daily App dari installer terbaru.
+- **Hapus Watermark LaMa lama sekali:** model AI sedang dimuat (1–2 menit di laptop lama), yaitu
+  saat pertama dipakai dan setelah 10 menit tidak dipakai. Selama model masih dimuat, proses
+  berikutnya lebih cepat.
+- **Proses pertama sangat lambat, atau gagal lalu berhasil saat diulang:** antivirus (mis.
+  Avast/AVG) sedang memindai berkas aplikasi yang baru dipasang, termasuk model AI. Pada
+  pengujian, Hapus Background pertama setelah instalasi butuh 2–3 menit; berikutnya sekitar
+  10 detik. Bila gagal, klik **Proses** sekali lagi.
 - **Aplikasi tidak mau terbuka:** kirim berkas log dari `%LOCALAPPDATA%\DailyApp\logs` lewat
   DM Instagram [@fajar_snts](https://www.instagram.com/fajar_snts).
 

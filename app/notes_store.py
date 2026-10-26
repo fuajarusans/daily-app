@@ -7,13 +7,13 @@ dilindungi lock agar aman dari penulisan bersamaan.
 from __future__ import annotations
 
 import json
-import os
 import threading
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 from app import config
+from app.fileio import replace_with_retry
 
 _LOCK = threading.Lock()
 
@@ -50,7 +50,9 @@ def _write_raw(notes: list[dict]) -> None:
     config.ensure_dirs()
     tmp = config.NOTES_FILE.parent / (config.NOTES_FILE.name + ".tmp")
     tmp.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(tmp, config.NOTES_FILE)  # penggantian atomik
+    # Penggantian atomik; dicoba ulang bila notes.json sedang dibaca thread lain (sticky
+    # menyimpan otomatis sambil halaman Catatan memuat daftar).
+    replace_with_retry(tmp, config.NOTES_FILE)
 
 
 # ---------------------------------------------------------------------------

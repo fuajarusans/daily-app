@@ -15,7 +15,8 @@ menyuntingnya.
 Dua engine tersedia (opsi `engine`):
   - "opencv" (default): cepat & ringan via `cv2.inpaint` (Telea/NS).
   - "lama": model AI LaMa (ONNX) via onnxruntime — lebih halus untuk area besar.
-    Implementasi di `tools/_lama.py` (unduh model ~208 MB sekali pada pemakaian pertama).
+    Implementasi di `tools/_lama.py` (model ~208 MB ikut installer; di mode pengembang
+    diunduh sekali pada pemakaian pertama).
 """
 from __future__ import annotations
 
@@ -54,7 +55,7 @@ class WatermarkRemoveTool(Tool):
             "type": "select",
             "choices": [
                 {"value": "opencv", "label": "OpenCV (cepat & ringan)"},
-                {"value": "lama", "label": "LaMa AI (lebih halus, unduh model ~208 MB sekali)"},
+                {"value": "lama", "label": "LaMa AI (lebih halus, lebih lambat)"},
             ],
             "default": "opencv",
         },
@@ -165,7 +166,7 @@ class WatermarkRemoveTool(Tool):
             )
         try:
             return _lama.inpaint(img, mask)
-        except RuntimeError as e:  # gagal mengunduh model
+        except RuntimeError as e:  # model tidak ada dan gagal diunduh (mode pengembang)
             raise ToolError(str(e))
         except Exception as e:  # noqa: BLE001
             raise ToolError(f"Gagal memproses dengan LaMa: {e}")

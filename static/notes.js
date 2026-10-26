@@ -6,6 +6,19 @@
   var editingId = null;
   var catFilter = ""; // "" = semua kategori
   var expanded = {};  // id catatan yang isinya sedang dibuka penuh
+  var onDesktop = {}; // id catatan yang sedang tampil sebagai sticky di desktop
+  var desktop = false; // jendela aplikasi (pywebview), bukan browser biasa
+  var chan = "BroadcastChannel" in window ? new BroadcastChannel("dailyapp-notes") : null;
+
+  function deskApi() { return window.pywebview && window.pywebview.api; }
+  function detectDesktop() {
+    var a = deskApi();
+    desktop = !!(a && a.sticky_open);
+    document.body.classList.toggle("desktop-mode", desktop);
+    var tip = document.getElementById("stickyTip");
+    if (tip) tip.hidden = !desktop;
+  }
+  function tell(type, id) { if (chan) chan.postMessage({ type: type, id: id }); }
 
   var CATS = window.CATEGORIES || [];
   var CAT_BY_ID = {};
@@ -99,17 +112,28 @@
       }
     }
     var pin = n.pinned ? '<span class="text-blue-700" title="Disematkan">' + DailyIcon("pin") + '<span class="sr-only">Disematkan</span></span> ' : "";
+    var stuck = desktop && !!onDesktop[n.id];
+    var deskChip = stuck
+      ? '<span class="inline-flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5 bg-blue-100 text-blue-700">' + DailyIcon("note") + " Di desktop</span>"
+      : "";
+    var stickyBtn = desktop
+      ? '<button data-action="sticky" data-id="' + n.id + '" aria-pressed="' + stuck + '" title="' + (stuck ? "Lepas dari desktop" : "Tempel ke desktop") + '" aria-label="Tempel ke desktop" class="text-xs px-2 py-1 rounded border ' + (stuck ? "bg-ps text-ps-on border-ps" : "border-slate-300 hover:bg-slate-50") + '">' + DailyIcon("note") + "</button>"
+      : "";
+    var grip = desktop
+      ? '<span class="note-grip" data-drag-handle title="Seret keluar jendela untuk menempel di desktop" aria-hidden="true">' + DailyIcon("grip-vertical") + "</span>"
+      : "";
     return '' +
-      '<div class="bg-white rounded-lg border border-slate-200 ' + meta.border + ' p-4">' +
+      '<div id="note-' + n.id + '" data-note="' + n.id + '" tabindex="-1" class="note-card bg-white rounded-lg border border-slate-200 ' + meta.border + ' p-4">' +
         '<div class="flex items-start justify-between gap-3">' +
           '<div class="min-w-0 flex-1">' +
-            '<h3 class="font-semibold ' + titleCls + ' break-words">' + pin + esc(n.title || "(tanpa judul)") + "</h3>" +
+            '<h3 class="font-semibold ' + titleCls + ' break-words">' + grip + pin + esc(n.title || "(tanpa judul)") + "</h3>" +
             body +
-            '<div class="flex flex-wrap items-center gap-2 mt-2">' + catChip + " " + dueChip + " " + tags + "</div>" +
+            '<div class="flex flex-wrap items-center gap-2 mt-2">' + catChip + " " + dueChip + " " + deskChip + " " + tags + "</div>" +
           "</div>" +
           '<div class="flex flex-col items-end gap-1 shrink-0">' +
             '<button data-action="done" data-id="' + n.id + '" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + (n.done ? DailyIcon("arrow-back-up") + " Batalkan" : DailyIcon("check") + " Selesai") + "</button>" +
             '<div class="flex gap-1">' +
+              stickyBtn +
               '<button data-action="pin" data-id="' + n.id + '" title="' + (n.pinned ? "Lepas sematan" : "Sematkan") + '" aria-label="' + (n.pinned ? "Lepas sematan" : "Sematkan") + '" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + DailyIcon(n.pinned ? "pinned-off" : "pin") + "</button>" +
               '<button data-action="edit" data-id="' + n.id + '" title="Edit" aria-label="Edit catatan" class="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50">' + DailyIcon("pencil") + '</button>' +
               '<button data-action="del" data-id="' + n.id + '" title="Hapus" aria-label="Hapus catatan" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">' + DailyIcon("trash") + '</button>' +
@@ -204,12 +228,21 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     }).then(function (data) {
+      // Penanda "Di desktop" dari jendela sticky yang benar-benar terbuka (bukan status file).
+      var a = deskApi();
+      if (!desktop || !a || !a.open_stickies) return [data, []];
+      return a.open_stickies().then(function (ids) { return [data, ids || []]; }, function () { return [data, []]; });
+    }).then(function (pair) {
+      var data = pair[0];
       loaded = true;
       allNotes = data.notes || [];
+      onDesktop = {};
+      pair[1].forEach(function (id) { onDesktop[id] = true; });
       updateCounts(data.counts);
       populateTags();
       renderCatFilter();
       render();
+      focusFromHash();
     }).catch(function () {
       if (loaded) { toast("Gagal memuat ulang catatan. Coba muat ulang halaman."); return; }
       showListMessage('Gagal memuat catatan. Pastikan Daily App masih berjalan, lalu ' +
@@ -248,6 +281,22 @@
     $("f-title").focus();
   }
 
+  // Nilai form saat Edit dibuka: hanya kolom yang diubah yang dikirim, agar perubahan dari
+  // sticky di desktop (judul/isi) tidak tertimpa nilai lama di form.
+  var editSnapshot = null;
+
+  function formValues() {
+    return {
+      title: $("f-title").value,
+      body: $("f-body").value,
+      category: $("f-category").value,
+      tags: $("f-tags").value.split(",").map(function (t) { return t.trim(); }).filter(Boolean).join(","),
+      due: $("f-due").value,
+      remind_before_days: String($("f-lead").value),
+      pinned: $("f-pinned").checked
+    };
+  }
+
   function startEdit(n) {
     editingId = n.id;
     $("f-id").value = n.id;
@@ -260,6 +309,7 @@
     $("f-pinned").checked = !!n.pinned;
     $("formTitle").textContent = "Edit catatan";
     $("btnSave").textContent = "Perbarui";
+    editSnapshot = formValues();
     openForm();
     window.scrollTo({ top: 0, behavior: "smooth" });
     $("f-title").focus();
@@ -289,6 +339,11 @@
       return;
     }
     var wasEdit = !!editingId;
+    if (wasEdit && editSnapshot) {
+      var now = formValues();
+      Object.keys(payload).forEach(function (k) { if (now[k] === editSnapshot[k]) delete payload[k]; });
+      if (!Object.keys(payload).length) { closeForm(); return; }
+    }
     var url = wasEdit ? "/api/notes/" + editingId : "/api/notes";
     fetch(url, {
       method: wasEdit ? "PUT" : "POST",
@@ -297,9 +352,10 @@
     }).then(function (r) {
       if (!r.ok) throw new Error("Gagal menyimpan");
       return r.json();
-    }).then(function () {
+    }).then(function (saved) {
       closeForm();
       toast(wasEdit ? "Catatan diperbarui" : "Catatan disimpan");
+      if (wasEdit && saved) tell("changed", saved.id);
       loadNotes();
     }).catch(function (err) { $("formMsg").textContent = err.message; });
   }
@@ -312,8 +368,105 @@
     }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       if (msg) toast(msg);
+      tell("changed", id);
       return loadNotes();
     }).catch(function () { toast("Gagal memperbarui catatan. Coba lagi."); });
+  }
+
+  // ---- Sticky note di desktop (hanya di jendela aplikasi) ----
+  function stickyResult(r) {
+    if (r && r.ok === false) toast(r.error || "Sticky gagal dibuat.");
+    else if (!(r && r.already)) toast("Ditempel di desktop");
+    loadNotes();
+  }
+
+  function toggleSticky(id) {
+    var a = deskApi();
+    if (!a) return;
+    if (onDesktop[id]) {
+      a.sticky_close(id).then(function () { toast("Dilepas dari desktop"); loadNotes(); });
+    } else {
+      a.sticky_open(id).then(stickyResult, function () { toast("Sticky gagal dibuat."); });
+    }
+  }
+
+  // Seret kartu sampai keluar jendela: sticky muncul di bawah kursor dan ikut terseret.
+  var drag = null;
+
+  function onCardPointerDown(e) {
+    if (!desktop || e.button !== 0 || e.pointerType === "touch") return;
+    // Seret dari pegangan atau area kosong kartu; dari teks tetap bisa menyeleksi teks.
+    if (!e.target.closest("[data-drag-handle]") &&
+        e.target.closest("h3, p, span, button, a, input, textarea, select, label")) return;
+    var card = e.target.closest("[data-note]");
+    if (!card) return;
+    drag = { id: card.getAttribute("data-note"), card: card, x: e.clientX, y: e.clientY, pid: e.pointerId, active: false };
+    try { card.setPointerCapture(e.pointerId); } catch (_) { /* tetap jalan tanpa capture */ }
+  }
+
+  function endDrag() {
+    if (!drag) return;
+    try { drag.card.releasePointerCapture(drag.pid); } catch (_) { /* sudah dilepas */ }
+    drag.card.style.transform = "";
+    drag.card.classList.remove("note-dragging");
+    document.body.classList.remove("is-dragging-note");
+    $("dragHint").hidden = true;
+    drag = null;
+  }
+
+  function tearOff() {
+    if (!drag || !drag.active) return;
+    var id = drag.id;
+    endDrag();
+    var a = deskApi();
+    if (a) a.sticky_tear(id).then(stickyResult, function () { toast("Sticky gagal dibuat."); });
+  }
+
+  function onPointerMove(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!(e.buttons & 1)) { endDrag(); return; } // tombol dilepas tanpa pointerup (mis. Alt+Tab)
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.active) {
+      if (Math.abs(dx) + Math.abs(dy) < 8) return;
+      drag.active = true;
+      var sel = window.getSelection();
+      if (sel) sel.removeAllRanges();
+      drag.card.classList.add("note-dragging");
+      document.body.classList.add("is-dragging-note");
+      $("dragHint").hidden = false;
+    }
+    drag.card.style.transform = "translate(" + dx + "px," + dy + "px) rotate(2deg)";
+    if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth - 1 || e.clientY >= window.innerHeight - 1) {
+      tearOff();
+    }
+  }
+
+  function focusFromHash() {
+    var m = /^#note-([0-9a-f]+)$/.exec(location.hash || "");
+    if (!m) return;
+    history.replaceState(null, "", location.pathname);
+    var el = document.getElementById("note-" + m[1]);
+    if (!el && allNotes.some(function (n) { return n.id === m[1]; })) {
+      // Kartunya tersaring: tampilkan semua dulu.
+      catFilter = "";
+      $("q").value = "";
+      $("tagFilter").value = "";
+      $("showDone").checked = true;
+      renderCatFilter();
+      render();
+      el = document.getElementById("note-" + m[1]);
+    }
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    el.focus({ preventScroll: true });
+    el.classList.add("note-flash");
+    setTimeout(function () { el.classList.remove("note-flash"); }, 2200);
+  }
+
+  var reloadTimer = null;
+  function reloadSoon() {
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(loadNotes, 250);
   }
 
   function onListClick(e) {
@@ -326,6 +479,7 @@
     if (!note) return;
     if (action === "done") patch(id, { done: !note.done }, note.done ? "Dibuka kembali" : "Ditandai selesai");
     else if (action === "pin") patch(id, { pinned: !note.pinned });
+    else if (action === "sticky") toggleSticky(id);
     else if (action === "edit") startEdit(note);
     else if (action === "toggle") {
       expanded[id] = !expanded[id];
@@ -338,6 +492,7 @@
         fetch("/api/notes/" + id, { method: "DELETE" }).then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
           toast("Catatan dihapus");
+          tell("deleted", id);
           loadNotes();
         }).catch(function () { toast("Gagal menghapus catatan. Coba lagi."); });
       }
@@ -362,6 +517,24 @@
     $("q").addEventListener("input", render);
     $("tagFilter").addEventListener("change", render);
     $("showDone").addEventListener("change", render);
+    $("notesList").addEventListener("pointerdown", onCardPointerDown);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", function (e) { if (drag && e.pointerId === drag.pid) endDrag(); });
+    document.addEventListener("pointercancel", endDrag);
+    window.addEventListener("blur", endDrag);
+    // Esc membatalkan seret (didaftarkan di fase capture agar tidak sampai ke Esc → Beranda).
+    window.addEventListener("keydown", function (e) {
+      if (drag && e.key === "Escape") { endDrag(); e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    // Cadangan bila WebView2 tidak meneruskan gerakan di luar jendela: keluar = sobek.
+    document.documentElement.addEventListener("mouseleave", function () { if (drag && drag.active) tearOff(); });
+    window.addEventListener("hashchange", focusFromHash);
+    if (chan) chan.onmessage = function (ev) {
+      var m = ev.data || {};
+      if (m.type === "changed" || m.type === "sticky") reloadSoon();
+    };
+    detectDesktop();
+    window.addEventListener("pywebviewready", function () { detectDesktop(); render(); });
     loadNotes();
   });
 })();

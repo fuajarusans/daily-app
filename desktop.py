@@ -1,10 +1,13 @@
 """Entry point aplikasi desktop Daily App (dipakai untuk exe/installer).
 
-Menyalakan server FastAPI di port acak (hanya 127.0.0.1), lalu membuka jendela
-aplikasi sendiri (Edge WebView2 lewat pywebview). Menutup jendela = aplikasi berhenti.
+Menyalakan server FastAPI (hanya 127.0.0.1), lalu membuka jendela aplikasi sendiri
+(Edge WebView2 lewat pywebview, lihat app/desktop_shell.py). Menutup jendela utama =
+aplikasi berhenti, kecuali masih ada sticky note di desktop (aplikasi tetap di tray).
 
 Pemakaian:
     python desktop.py                      # jendela aplikasi
+    python desktop.py --startup            # saat Windows menyala: pulihkan sticky saja
+    python desktop.py --warmup             # siapkan profil LibreOffice (dipanggil installer)
     python desktop.py --server-only        # server saja (diagnosa / uji otomatis)
     python desktop.py --server-only --port 8020
 
@@ -25,7 +28,11 @@ from app import config
 from app.version import __version__
 
 MUTEX_NAME = "DailyAppSingleInstance"  # sama dengan AppMutex di packaging/installer.iss
+SHOW_EVENT_NAME = "DailyAppShowMain"   # sama dengan app/desktop_shell.py
 WEBVIEW2_URL = "https://developer.microsoft.com/microsoft-edge/webview2/"
+# Port tetap agar origin halaman sama tiap kali dibuka (localStorage: suara, notifikasi).
+# Bila terpakai aplikasi lain, pakai port acak.
+PREFERRED_PORT = 47815
 
 log = logging.getLogger("dailyapp")
 
@@ -49,6 +56,33 @@ def _already_running() -> bool:
     return kernel32.GetLastError() == 183  # ERROR_ALREADY_EXISTS
 
 
+def _create_show_event() -> None:
+    """Buat event 'tampilkan jendela' sedini mungkin (sebelum server & jendela siap), agar
+    permintaan dari peluncuran kedua tidak hilang. Event auto-reset: permintaan menunggu
+    sampai app/desktop_shell.py mulai mendengarkan."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateEventW.restype = ctypes.c_void_p
+    globals()["_show_event"] = kernel32.CreateEventW(None, False, False, SHOW_EVENT_NAME)
+
+
+def _show_running_instance() -> bool:
+    """Minta salinan yang sudah berjalan menampilkan jendela utamanya."""
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.OpenEventW.restype = ctypes.c_void_p
+    handle = kernel32.OpenEventW(0x0002, False, SHOW_EVENT_NAME)  # EVENT_MODIFY_STATE
+    if not handle:
+        return False
+    # Proses ini dibuka pengguna (boleh ke depan); izinkan salinan lama memajukan jendelanya.
+    ctypes.windll.user32.AllowSetForegroundWindow(-1)  # ASFW_ANY
+    kernel32.SetEvent(ctypes.c_void_p(handle))
+    kernel32.CloseHandle(ctypes.c_void_p(handle))
+    return True
+
+
 def _setup_logging() -> None:
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(config.LOG_DIR / "daily-app.log", maxBytes=1_000_000,
@@ -65,10 +99,15 @@ def _setup_logging() -> None:
         sys.stderr = sys.stderr or stream
 
 
-def _free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((config.HOST, 0))
-        return s.getsockname()[1]
+def _free_port(preferred: int = 0) -> int:
+    for port in ((preferred, 0) if preferred else (0,)):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((config.HOST, port))
+            except OSError:
+                continue
+            return s.getsockname()[1]
+    raise OSError("Tidak ada port lokal yang bisa dipakai")
 
 
 def _start_server(port: int):
@@ -87,42 +126,57 @@ def _start_server(port: int):
     return server, thread
 
 
-def _open_window(url: str) -> bool:
-    """Buka jendela aplikasi. False bila WebView2 tidak tersedia."""
+def _open_window(url: str, startup: bool) -> bool:
+    """Buka jendela aplikasi (dan sticky). False bila WebView2 tidak tersedia."""
     try:
-        import webview
+        from app import desktop_shell
     except Exception:  # noqa: BLE001
         log.exception("pywebview tidak bisa dimuat")
         return False
-    # Unduhan hasil tool & PDF memunculkan dialog "Simpan sebagai".
-    webview.settings["ALLOW_DOWNLOADS"] = True
-    webview.create_window(f"Daily App {__version__}", url, width=1280, height=860,
-                          min_size=(900, 600), text_select=True)
     try:
-        webview.start(gui="edgechromium", private_mode=False,
-                      storage_path=str(config.USER_DIR / "webview"),
-                      localization={"windows.fileFilter.allFiles": "Semua file"})
+        return desktop_shell.run(url, startup=startup)
     except Exception:  # noqa: BLE001
         log.exception("Gagal membuka jendela WebView2")
         return False
-    return True
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Daily App (aplikasi desktop)")
     parser.add_argument("--server-only", action="store_true", help="jalankan server tanpa jendela")
-    parser.add_argument("--port", type=int, default=0, help="port server (default: acak)")
+    parser.add_argument("--startup", action="store_true",
+                        help="dijalankan saat Windows menyala: hanya memulihkan sticky note")
+    parser.add_argument("--warmup", action="store_true",
+                        help="siapkan profil LibreOffice lalu keluar (dipanggil installer)")
+    parser.add_argument("--port", type=int, default=0, help="port server (default: tetap/acak)")
     args = parser.parse_args()
 
-    if not args.server_only and _already_running():
-        _message_box("Daily App sudah berjalan. Cek jendela Daily App di taskbar.")
-        return 0
+    if args.warmup:
+        config.ensure_dirs()
+        _setup_logging()
+        from app import utils
+        return 0 if utils.warm_libreoffice() else 1
+
+    if not args.server_only:
+        if _already_running():
+            if args.startup:
+                return 0
+            if not _show_running_instance():
+                _message_box("Daily App sudah berjalan. Cek jendela Daily App di taskbar atau ikon di tray.")
+            return 0
+        _create_show_event()
 
     config.ensure_dirs()
     _setup_logging()
-    log.info("Daily App %s mulai (frozen=%s, data=%s)", __version__, config.FROZEN, config.USER_DIR)
+    log.info("Daily App %s mulai (frozen=%s, data=%s, startup=%s)",
+             __version__, config.FROZEN, config.USER_DIR, args.startup)
 
-    port = args.port or _free_port()
+    if args.startup:
+        from app import sticky_store
+        if not sticky_store.restorable_ids():
+            log.info("Mode startup: tidak ada sticky, keluar")
+            return 0
+
+    port = args.port or _free_port(0 if args.server_only else PREFERRED_PORT)
     try:
         server, thread = _start_server(port)
     except Exception as e:  # noqa: BLE001
@@ -136,6 +190,12 @@ def main() -> int:
     url = f"http://{config.HOST}:{port}/"
     log.info("Server aktif di %s", url)
 
+    if not args.server_only:
+        from app import utils
+        if not utils.libreoffice_ready() and utils.find_libreoffice():
+            # Profil belum siap (mis. pemanasan saat instal dilewati): siapkan di latar.
+            threading.Thread(target=utils.warm_libreoffice, name="lo-warmup", daemon=True).start()
+
     if args.server_only:
         print(f"Daily App {__version__} berjalan di {url} (CTRL+C untuk berhenti)", flush=True)
         try:
@@ -143,7 +203,7 @@ def main() -> int:
                 time.sleep(0.5)
         except KeyboardInterrupt:
             pass
-    elif not _open_window(url):
+    elif not _open_window(url, args.startup):
         # Cadangan: tanpa WebView2, pakai browser bawaan selama kotak pesan terbuka.
         webbrowser.open(url)
         _message_box(

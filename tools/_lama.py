@@ -1,8 +1,11 @@
 """Engine inpainting LaMa (model ONNX) untuk tool Hapus Watermark.
 
 Memakai onnxruntime yang SUDAH terpasang (lewat rembg) — TANPA torch. Model
-`lama_fp32.onnx` (Carve/LaMa-ONNX, ~208 MB, Apache-2.0) diunduh SEKALI ke folder
-`models/` saat pertama kali dipakai, lalu berjalan offline (pola seperti rembg).
+`lama_fp32.onnx` (Carve/LaMa-ONNX, ~208 MB, Apache-2.0) ikut installer (folder vendor).
+Bila tidak ada (mode pengembang), model diunduh sekali ke folder `models/`.
+
+Memori: arena onnxruntime dimatikan (memori tertahan turun dari ~1,5 GB ke ~0,4 GB pada
+pengukuran), dan sesi dilepas setelah tidak dipakai selama config.AI_IDLE_RELEASE_SECONDS.
 
 Strategi: model menerima input tetap 512x512. Daripada mengecilkan seluruh gambar
 (bikin hasil buram), kita potong (crop) area di sekitar watermark + margin konteks,
@@ -13,26 +16,43 @@ Nama berkas diawali underscore '_' agar TIDAK ikut auto-import sebagai Tool.
 """
 from __future__ import annotations
 
+import gc
+import hashlib
 import os
+import threading
 import urllib.request
 from pathlib import Path
 
 import numpy as np
 
-from app import config
+from app import config, utils
 
 MODEL_FILENAME = "lama_fp32.onnx"
 MODEL_URL = "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx"
+MODEL_SHA256 = "1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6"
 MODEL_SIZE_MB = 208
 INPUT_SIZE = 512
 
-# Cache antar-request agar model hanya di-load sekali.
+# Cache antar-request agar model hanya di-load sekali (memuatnya 40-100 detik di CPU lambat).
 _session = None
 _io_names: tuple[str, str, str] | None = None  # (image_input, mask_input, output)
+_lock = threading.RLock()
+
+
+def _release() -> None:
+    global _session, _io_names
+    with _lock:
+        _session = None
+        _io_names = None
+    gc.collect()
+
+
+_idle = utils.IdleRelease(config.AI_IDLE_RELEASE_SECONDS, _release)
 
 
 def model_path() -> Path:
-    return config.MODELS_DIR / MODEL_FILENAME
+    bundled = config.BUNDLED_MODELS_DIR / MODEL_FILENAME
+    return bundled if bundled.is_file() else config.MODELS_DIR / MODEL_FILENAME
 
 
 def onnxruntime_available() -> bool:
@@ -55,6 +75,7 @@ def ensure_model() -> Path:
         return path
     config.MODELS_DIR.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".part")
+    digest = hashlib.sha256()
     try:
         req = urllib.request.Request(MODEL_URL, headers={"User-Agent": "DailyApp/1.0"})
         with urllib.request.urlopen(req, timeout=60) as resp, open(tmp, "wb") as out:
@@ -62,6 +83,7 @@ def ensure_model() -> Path:
                 chunk = resp.read(1024 * 256)
                 if not chunk:
                     break
+                digest.update(chunk)
                 out.write(chunk)
     except Exception as e:  # noqa: BLE001
         try:
@@ -72,6 +94,14 @@ def ensure_model() -> Path:
         raise RuntimeError(
             f"Gagal mengunduh model LaMa (~{MODEL_SIZE_MB} MB): {e}. "
             "Pastikan ada koneksi internet pada pemakaian pertama."
+        )
+    if digest.hexdigest() != MODEL_SHA256:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise RuntimeError(
+            "Berkas model LaMa yang diunduh rusak atau tidak lengkap (checksum tidak cocok). Coba lagi."
         )
     os.replace(tmp, path)
     return path
@@ -84,7 +114,9 @@ def _get_session():
     import onnxruntime as ort
 
     path = ensure_model()
-    sess = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    opts = ort.SessionOptions()
+    opts.enable_cpu_mem_arena = False
+    sess = ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
 
     # Identifikasi input gambar (3 channel) vs mask (1 channel) lewat bentuknya,
     # agar tahan terhadap perbedaan penamaan antar-ekspor model.
@@ -107,10 +139,17 @@ def _get_session():
 
 def _run_512(img_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """Jalankan LaMa pada satu potongan; kembalikan hasil BGR seukuran input."""
+    # Selama dipakai, model tidak dilepas; hitungan menganggur mulai setelah selesai.
+    with _idle.in_use():
+        return _run_512_locked(img_bgr, mask)
+
+
+def _run_512_locked(img_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
     import cv2
 
-    sess = _get_session()
-    img_name, mask_name, out_name = _io_names
+    with _lock:
+        sess = _get_session()
+        img_name, mask_name, out_name = _io_names
     h, w = img_bgr.shape[:2]
 
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)

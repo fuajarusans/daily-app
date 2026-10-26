@@ -4,11 +4,15 @@ Strategi:
   - Metode "Cepat (pikepdf)": kompres/linearize stream, buang objek tak terpakai.
     Selalu tersedia karena pikepdf adalah dependency pip.
   - Metode "Maksimal (Ghostscript)": re-encode gambar dengan target kualitas.
-    Lebih efektif untuk PDF berisi banyak gambar, tetapi butuh Ghostscript
-    terpasang di sistem (lihat README).
+    Lebih efektif untuk PDF berisi banyak gambar. Ghostscript ikut installer
+    (folder vendor); di mode pengembang dipakai Ghostscript yang terpasang.
+    Bila hasilnya justru lebih besar dari aslinya, dicoba metode Cepat. Hasil akhir tidak
+    pernah lebih besar dari file asli: bila tidak ada yang lebih kecil, file asli dikembalikan.
 """
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -28,7 +32,7 @@ _GS_PRESETS = {
 class CompressPdfTool(Tool):
     id = "compress-pdf"
     name = "Compress PDF"
-    description = "Perkecil ukuran file PDF. Metode 'Maksimal' butuh Ghostscript."
+    description = "Perkecil ukuran file PDF. Metode 'Maksimal' mengompres ulang gambar di dalamnya."
     icon = "🗜️"
     glyph = "file-zip"
     hue = "#d64545"
@@ -40,8 +44,8 @@ class CompressPdfTool(Tool):
             "label": "Metode kompresi",
             "type": "select",
             "choices": [
-                {"value": "fast", "label": "Cepat (pikepdf, tanpa instalasi tambahan)"},
-                {"value": "max", "label": "Maksimal (Ghostscript, perlu terpasang)"},
+                {"value": "fast", "label": "Cepat (tanpa mengubah kualitas gambar)"},
+                {"value": "max", "label": "Maksimal (Ghostscript, kompres ulang gambar)"},
             ],
             "default": "fast",
         },
@@ -80,8 +84,8 @@ class CompressPdfTool(Tool):
         gs = utils.find_ghostscript()
         if not gs:
             raise ToolError(
-                "Ghostscript tidak ditemukan. Pilih metode 'Cepat', atau instal "
-                "Ghostscript (lihat README bagian Dependency Eksternal)."
+                "Komponen Ghostscript tidak ditemukan. Pilih metode 'Cepat', atau pasang "
+                "ulang Daily App dari installer terbaru."
             )
         setting = _GS_PRESETS.get(preset, "/ebook")
         cmd = [
@@ -96,7 +100,8 @@ class CompressPdfTool(Tool):
             str(src),
         ]
         try:
-            subprocess.run(cmd, check=True, capture_output=True, timeout=300, **utils.no_window())
+            subprocess.run(cmd, check=True, capture_output=True, timeout=900,
+                           env=utils.ghostscript_env(gs), **utils.no_window())
         except subprocess.CalledProcessError as e:
             msg = e.stderr.decode(errors="ignore") if e.stderr else str(e)
             raise ToolError(f"Ghostscript gagal pada '{src.name}': {msg}")
@@ -110,9 +115,30 @@ class CompressPdfTool(Tool):
         results: list[Path] = []
         for src in input_paths:
             out = output_dir / f"{src.stem}_compressed.pdf"
-            if method == "max":
-                self._compress_ghostscript(src, out, quality)
-            else:
-                self._compress_pikepdf(src, out)
+            gs_tmp = output_dir / f"{src.stem}.gs.tmp"
+            pk_tmp = output_dir / f"{src.stem}.pk.tmp"
+            try:
+                candidates: list[Path] = []
+                if method == "max":
+                    self._compress_ghostscript(src, gs_tmp, quality)
+                    candidates.append(gs_tmp)
+                    # PDF yang gambarnya sudah terkompres bisa justru membesar lewat Ghostscript.
+                    if gs_tmp.stat().st_size >= src.stat().st_size:
+                        try:
+                            self._compress_pikepdf(src, pk_tmp)
+                            candidates.append(pk_tmp)
+                        except ToolError:
+                            pass
+                else:
+                    self._compress_pikepdf(src, pk_tmp)
+                    candidates.append(pk_tmp)
+                best = min(candidates, key=lambda p: p.stat().st_size)
+                if best.stat().st_size < src.stat().st_size:
+                    os.replace(best, out)
+                else:
+                    shutil.copyfile(src, out)  # tidak ada yang lebih kecil: kembalikan aslinya
+            finally:
+                for tmp in (gs_tmp, pk_tmp):
+                    tmp.unlink(missing_ok=True)
             results.append(out)
         return results
